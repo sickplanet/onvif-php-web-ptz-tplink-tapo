@@ -1,0 +1,3 @@
+[submodule "model/ponvif"]
+	path = model/ponvif
+	url = https://github.com/KuroNeko-san/ponvif
