@@ -1,0 +1,2 @@
+# camera info cache (JSON per ip) - .gitkeep to keep directory in git
+*.json

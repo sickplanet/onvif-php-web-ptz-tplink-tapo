@@ -1,29 +1,24 @@
-# Deny direct access to cfg and model folders
-<IfModule mod_authz_core.c>
-  <DirectoryMatch "cfg">
-    Require all denied
-  </DirectoryMatch>
-</IfModule>
 
-# If Apache < 2.4, fallback
-<IfModule !mod_authz_core.c>
-  <IfModule mod_access_compat.c>
-    <DirectoryMatch "cfg">
-      Deny from all
-    </DirectoryMatch>
-  </IfModule>
-</IfModule>
 
 # Rewrite all requests (except existing files) to index.php for routing
+<IfModule mod_rewrite.c>
+# Clean, safe rewrite rules for the app.
+# Important: Make sure your Apache VirtualHost allows .htaccess (AllowOverride All).
+
 RewriteEngine On
 RewriteBase /onvif-ui/
 
-# Allow direct access to assets under /view and actual files
-RewriteCond %{REQUEST_FILENAME} -f
+# If requested path is an existing file or directory, serve it directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Protect composer and model directories
-RewriteRule ^(vendor|model|ponvif|cfg)/ - [F,L]
+# Allow direct access to model/html5_rtsp_player dist/public folders (if you installed submodule)
+RewriteRule ^model/html5_rtsp_player/(dist|public)/ - [L]
+
+# Deny direct access to sensitive directories
+RewriteRule ^(cfg|ponvif|vendor|model/ponvif)/ - [F,L]
 
 # Route everything else to index.php
 RewriteRule ^ index.php [QSA,L]
+</IfModule>
