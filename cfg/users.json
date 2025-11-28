@@ -1,0 +1,10 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password_hash": "REPLACE_WITH_HASH_AFTER_SETUP",
+      "isadmin": true,
+      "cameras": []
+    }
+  ]
+}

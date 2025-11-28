@@ -1,0 +1,6 @@
+This folder is intended for git submodules (ponvif, rtsp->webrtc or js players).
+Example:
+  git submodule add https://github.com/KuroNeko-san/ponvif.git model/ponvif
+  git submodule add https://github.com/html5p/html5_rtsp_player.git model/html5_rtsp_player
+Initialize submodules:
+  git submodule update --init --recursive

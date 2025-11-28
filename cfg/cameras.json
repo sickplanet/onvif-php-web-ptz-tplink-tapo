@@ -1,0 +1,18 @@
+{
+  "cameras": [
+    {
+      "id": "tapo-c200-1",
+      "name": "Tapo C200 Living Room",
+      "ip": "192.168.2.93",
+      "username": "lucian",
+      "password": "CHANGE_ME_PASSWORD",
+      "device_service_url": "http://192.168.2.93:2020/onvif/device_service",
+      "streams": {
+        "high": "rtsp://192.168.2.93:554/stream1",
+        "low": "rtsp://192.168.2.93:554/stream2"
+      },
+      "allowptz": true,
+      "allow_audio": true
+    }
+  ]
+}

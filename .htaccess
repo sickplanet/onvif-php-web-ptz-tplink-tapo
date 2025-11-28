@@ -1,0 +1,29 @@
+# Deny direct access to cfg and model folders
+<IfModule mod_authz_core.c>
+  <DirectoryMatch "cfg">
+    Require all denied
+  </DirectoryMatch>
+</IfModule>
+
+# If Apache < 2.4, fallback
+<IfModule !mod_authz_core.c>
+  <IfModule mod_access_compat.c>
+    <DirectoryMatch "cfg">
+      Deny from all
+    </DirectoryMatch>
+  </IfModule>
+</IfModule>
+
+# Rewrite all requests (except existing files) to index.php for routing
+RewriteEngine On
+RewriteBase /onvif-ui/
+
+# Allow direct access to assets under /view and actual files
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Protect composer and model directories
+RewriteRule ^(vendor|model|ponvif|cfg)/ - [F,L]
+
+# Route everything else to index.php
+RewriteRule ^ index.php [QSA,L]
