@@ -5,8 +5,9 @@ $devices = load_json_cfg('cameras.json', ['cameras'=>[]])['cameras'] ?? [];
 $baseUrl = defined('BASE_URL') ? BASE_URL : '/';
 require_once __DIR__ . '/header.php';
 ?>
-<div class="row">
-  <div class="col-md-3">
+<div class="row g-3">
+  <!-- Sidebar - responsive: col-12 on mobile, col-lg-3 on large screens -->
+  <div class="col-12 col-lg-3">
     <div class="card mb-3 p-3">
       <h6>Devices</h6>
       <select id="deviceSelect" class="form-select form-select-sm mb-2">
@@ -23,7 +24,7 @@ require_once __DIR__ . '/header.php';
         </div>
       </div>
 
-      <div class="d-flex gap-2">
+      <div class="d-flex flex-wrap gap-2">
         <button id="refreshBtn" class="btn btn-sm btn-accent">Refresh Info</button>
         <button id="scanBtn" class="btn btn-sm btn-outline-light">Scan</button>
       </div>
@@ -35,42 +36,52 @@ require_once __DIR__ . '/header.php';
     </div>
   </div>
 
-  <div class="col-md-9">
+  <!-- Main content - responsive: col-12 on mobile, col-lg-9 on large screens -->
+  <div class="col-12 col-lg-9">
     <div id="mainPanel" class="card p-3">
       <div id="videoArea" class="video-wrapper">
         <div id="videoPlaceholder">Select a camera</div>
-        <img id="snapshotImg" style="display:none;max-width:100%" />
+        <img id="snapshotImg" class="img-fluid" style="display:none;max-width:100%" alt="Camera snapshot" />
       </div>
 
-      <div class="mt-2 small text-muted-custom">
-        Stream: <code id="streamUri">-</code> | Snapshot: <code id="snapshotUri">-</code>
+      <!-- Stream URIs - responsive text -->
+      <div class="mt-2 small text-muted-custom text-break">
+        <span class="d-block d-sm-inline">Stream: <code id="streamUri" class="text-break">-</code></span>
+        <span class="d-none d-sm-inline"> | </span>
+        <span class="d-block d-sm-inline">Snapshot: <code id="snapshotUri" class="text-break">-</code></span>
       </div>
 
+      <!-- PTZ Controls - responsive layout -->
       <div class="mt-3">
-        <div class="d-inline-grid" style="grid-template-columns:repeat(3,60px);grid-template-rows:repeat(3,40px);gap:6px;">
-          <div></div><button class="btn btn-sm btn-secondary" onclick="ptz('up')">▲</button><div></div>
-          <button class="btn btn-sm btn-secondary" onclick="ptz('left')">◀</button>
-          <button class="btn btn-sm btn-danger" onclick="ptz('stop')">■</button>
-          <button class="btn btn-sm btn-secondary" onclick="ptz('right')">▶</button>
-          <div></div><button class="btn btn-sm btn-secondary" onclick="ptz('down')">▼</button><div></div>
-        </div>
-        <div class="d-inline-block ms-3">
-          <button class="btn btn-sm btn-secondary" onclick="ptz('zoom_in')">Zoom +</button>
-          <button class="btn btn-sm btn-secondary" onclick="ptz('zoom_out')">Zoom −</button>
+        <div class="d-flex flex-wrap align-items-start gap-3">
+          <!-- D-pad -->
+          <div class="d-inline-grid" style="grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,40px);gap:4px;">
+            <div></div><button class="btn btn-sm btn-secondary" onclick="ptz('up')">▲</button><div></div>
+            <button class="btn btn-sm btn-secondary" onclick="ptz('left')">◀</button>
+            <button class="btn btn-sm btn-danger" onclick="ptz('stop')">■</button>
+            <button class="btn btn-sm btn-secondary" onclick="ptz('right')">▶</button>
+            <div></div><button class="btn btn-sm btn-secondary" onclick="ptz('down')">▼</button><div></div>
+          </div>
+          <!-- Zoom buttons -->
+          <div class="d-flex flex-column gap-2">
+            <button class="btn btn-sm btn-secondary" onclick="ptz('zoom_in')">Zoom +</button>
+            <button class="btn btn-sm btn-secondary" onclick="ptz('zoom_out')">Zoom −</button>
+          </div>
         </div>
       </div>
 
-      <pre id="debugArea" class="mt-3 text-muted-custom" style="max-height:200px;overflow:auto;"></pre>
+      <!-- Debug area - scrollable -->
+      <pre id="debugArea" class="mt-3 text-muted-custom small" style="max-height:200px;overflow:auto;word-break:break-all;white-space:pre-wrap;"></pre>
     </div>
   </div>
 </div>
 
 <!-- Scan results modal (ensure this exists so JS doesn't fallback to alert) -->
 <div class="modal fade" id="scanModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content bg-dark text-light">
       <div class="modal-header">
-        <h5 class="modal-title">Scan results</h5>
+        <h5 class="modal-title">Scan Results</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -88,7 +99,7 @@ require_once __DIR__ . '/header.php';
 
 <!-- Add Camera Modal (used when adding discovered camera) -->
 <div class="modal fade" id="addCameraModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content bg-dark text-light">
       <div class="modal-header">
         <h5 class="modal-title">Add Camera</h5>
@@ -100,31 +111,31 @@ require_once __DIR__ . '/header.php';
         <input type="hidden" id="addCamModel">
         <input type="hidden" id="addCamXaddrs">
         
-        <div class="mb-2">
+        <div class="mb-3">
           <label class="form-label">IP Address</label>
           <input type="text" id="addCamIpDisplay" class="form-control" readonly>
         </div>
-        <div class="mb-2">
-          <label class="form-label">Camera Name *</label>
+        <div class="mb-3">
+          <label class="form-label">Camera Name <span class="text-danger">*</span></label>
           <input type="text" id="addCamName" class="form-control" required placeholder="e.g. Front Door Camera">
         </div>
-        <div class="mb-2">
+        <div class="mb-3">
           <label class="form-label">Username</label>
-          <input type="text" id="addCamUsername" class="form-control" placeholder="Camera ONVIF username">
+          <input type="text" id="addCamUsername" class="form-control" placeholder="Camera ONVIF username" autocomplete="username">
         </div>
-        <div class="mb-2">
+        <div class="mb-3">
           <label class="form-label">Password</label>
-          <input type="password" id="addCamPassword" class="form-control" placeholder="Camera ONVIF password">
+          <input type="password" id="addCamPassword" class="form-control" placeholder="Camera ONVIF password" autocomplete="current-password">
         </div>
-        <div class="mb-2">
+        <div class="mb-3">
           <label class="form-label">Device Service URL</label>
           <input type="text" id="addCamDeviceUrl" class="form-control" placeholder="Auto-detected">
-          <small class="text-muted">Leave blank to use default</small>
+          <div class="form-text text-muted">Leave blank to use default</div>
         </div>
         
         <div id="addCamTestResult" class="mt-2" style="display:none;"></div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer flex-wrap gap-2">
         <button type="button" id="testConnectionBtn" class="btn btn-outline-info">Test Connection</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" id="confirmAddCameraBtn" class="btn btn-primary">Add Camera</button>

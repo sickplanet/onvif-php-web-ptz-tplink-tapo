@@ -5,6 +5,44 @@ let currentProfileToken = null;
 const scanModal = new bootstrap.Modal(document.getElementById('scanModal'), {});
 const addCameraModal = new bootstrap.Modal(document.getElementById('addCameraModal'), {});
 
+// --- Alert Modal (replaces standard alert()) ---
+// Create error/alert modal if not exists
+function ensureAlertModal() {
+  if (!document.getElementById('alertModal')) {
+    const modalHtml = `
+      <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+              <h5 class="modal-title" id="alertModalTitle">Notice</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="alertModalBody"></div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+}
+ensureAlertModal();
+const alertModalEl = document.getElementById('alertModal');
+const alertModal = new bootstrap.Modal(alertModalEl, {});
+
+function showErrorModal(message, title) {
+  document.getElementById('alertModalTitle').textContent = title || 'Error';
+  document.getElementById('alertModalBody').innerHTML = escapeHtml(message);
+  alertModal.show();
+}
+
+function showInfoModal(message, title) {
+  document.getElementById('alertModalTitle').textContent = title || 'Notice';
+  document.getElementById('alertModalBody').innerHTML = escapeHtml(message);
+  alertModal.show();
+}
+
 // --- Helpers ---
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, function (m) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]; });
@@ -27,6 +65,11 @@ function showAddCamError(message) {
 
 // --- Scan button with loader & modal population ---
 document.getElementById('scanBtn').addEventListener('click', async () => {
+  // Show modal immediately with loading spinner
+  document.getElementById('scanStatus').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning network for cameras...';
+  document.getElementById('scanResults').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><div class="mt-2 text-muted-custom">Discovering ONVIF devices...</div></div>';
+  scanModal.show();
+  
   document.getElementById('scanStatusText').textContent = 'Scanning...';
   document.getElementById('scanLoader').style.display = 'inline-block';
 
@@ -36,15 +79,15 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
     if (!res.ok) {
       const text = await res.text();
       document.getElementById('scanStatusText').textContent = 'Scan failed: HTTP ' + res.status;
-      document.getElementById('scanResults').innerText = text;
-      scanModal.show();
+      document.getElementById('scanStatus').textContent = 'Scan failed: HTTP ' + res.status;
+      document.getElementById('scanResults').innerHTML = '<pre class="text-danger">' + escapeHtml(text) + '</pre>';
       return;
     }
     const data = await res.json();
     if (!data.ok) {
       document.getElementById('scanStatusText').textContent = 'Scan failed: ' + (data.error || 'unknown');
-      document.getElementById('scanResults').innerText = JSON.stringify(data, null, 2);
-      scanModal.show();
+      document.getElementById('scanStatus').textContent = 'Scan failed: ' + (data.error || 'unknown');
+      document.getElementById('scanResults').innerHTML = '<pre class="text-danger">' + escapeHtml(JSON.stringify(data, null, 2)) + '</pre>';
       return;
     }
 
@@ -61,8 +104,8 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
         populateScanModal(arr);
       } else {
         document.getElementById('scanStatusText').textContent = 'No devices discovered (multicast may be blocked).';
-        document.getElementById('scanResults').innerHTML = '<div class="small text-muted-custom">No devices found.</div>';
-        scanModal.show();
+        document.getElementById('scanStatus').textContent = 'No devices discovered';
+        document.getElementById('scanResults').innerHTML = '<div class="alert alert-warning">No ONVIF devices found. Multicast discovery may be blocked on your network.</div>';
       }
       return;
     }
@@ -72,14 +115,15 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
   } catch (err) {
     document.getElementById('scanLoader').style.display = 'none';
     document.getElementById('scanStatusText').textContent = 'Scan error: ' + err.message;
-    document.getElementById('scanResults').innerText = err.stack || err.message;
-    scanModal.show();
+    document.getElementById('scanStatus').textContent = 'Scan error: ' + err.message;
+    document.getElementById('scanResults').innerHTML = '<pre class="text-danger">' + escapeHtml(err.stack || err.message) + '</pre>';
   }
 });
 
 function populateScanModal(devices) {
   const container = document.getElementById('scanResults');
   container.innerHTML = '';
+  document.getElementById('scanStatus').textContent = 'Discovered ' + devices.length + ' device(s). Click "Add" to configure a camera.';
   devices.forEach((d, idx) => {
     const ip = d.IPAddr || (d.XAddrs ? (Array.isArray(d.XAddrs)?d.XAddrs[0]:d.XAddrs) : '');
     const info = d.info || {};
@@ -89,13 +133,16 @@ function populateScanModal(devices) {
     const html = `
       <div class="card bg-dark mb-2">
         <div class="card-body p-2">
-          <div class="d-flex justify-content-between">
-            <div>
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div class="flex-grow-1">
               <div><strong>${escapeHtml(ip)} ${manuf||model ? ' — ' + escapeHtml(manuf + ' ' + model) : ''}</strong></div>
-              <div class="small text-muted-custom">XAddrs: ${escapeHtml(xaddrs)}</div>
-              <pre class="small text-muted-custom" style="white-space:pre-wrap">${escapeHtml(JSON.stringify(d, null, 2))}</pre>
+              <div class="small text-muted-custom text-break">XAddrs: ${escapeHtml(xaddrs)}</div>
+              <details class="mt-1">
+                <summary class="small text-muted-custom" style="cursor:pointer">Raw data</summary>
+                <pre class="small text-muted-custom" style="white-space:pre-wrap;max-height:150px;overflow:auto">${escapeHtml(JSON.stringify(d, null, 2))}</pre>
+              </details>
             </div>
-            <div class="ps-2 text-end">
+            <div class="ps-md-2 text-end mt-2 mt-md-0">
               <button class="btn btn-sm btn-outline-light" onclick="addDiscovered('${escapeJs(ip)}','${escapeJs(manuf)}','${escapeJs(model)}','${escapeJs(xaddrs)}')">Add</button>
             </div>
           </div>
@@ -104,7 +151,7 @@ function populateScanModal(devices) {
     `;
     container.insertAdjacentHTML('beforeend', html);
   });
-  scanModal.show();
+  // Modal already shown with loading spinner, no need to show again
 }
 
 // --- Add discovered camera (opens modal for username/password and test) ---
@@ -210,7 +257,7 @@ document.getElementById('confirmAddCameraBtn').addEventListener('click', async (
   }
 });
 
-// --- Device select & PTZ logic (unchanged) ---
+// --- Device select & PTZ logic (updated to use simplified profiles structure) ---
 document.getElementById('deviceSelect').addEventListener('change', async function(){
   const id = this.value;
   if (!id) return;
@@ -218,10 +265,13 @@ document.getElementById('deviceSelect').addEventListener('change', async functio
   const r = await fetch(BASE_URL + 'onvif/profiles?deviceId=' + encodeURIComponent(id));
   const j = await r.json();
   document.getElementById('debugArea').textContent = JSON.stringify(j, null, 2);
-  if (!j.ok) { alert(j.error || 'Error'); return; }
-  const sources = j.sources || [];
-  if (sources.length && sources[0][1] && sources[0][1].profiletoken) {
-    currentProfileToken = sources[0][1].profiletoken;
+  if (!j.ok) { showErrorModal(j.error || 'Error fetching profiles'); return; }
+  
+  // Use new simplified profiles structure: {ok: true, profiles: [{name, token}, ...]}
+  const profiles = j.profiles || [];
+  
+  if (profiles.length > 0 && profiles[0].token) {
+    currentProfileToken = profiles[0].token;
     const s = await fetch(BASE_URL + 'onvif/stream?deviceId=' + encodeURIComponent(id) + '&profileToken=' + encodeURIComponent(currentProfileToken));
     const sj = await s.json();
     document.getElementById('debugArea').textContent = JSON.stringify(sj, null, 2);
@@ -237,12 +287,12 @@ document.getElementById('deviceSelect').addEventListener('change', async functio
       document.getElementById('videoPlaceholder').textContent = 'RTSP: ' + (sj.rtspHints?.high || sj.streamUri || '-');
     }
   } else {
-    alert('No profile token found for device.');
+    showErrorModal('No profile token found for device. The camera may require authentication or does not support media profiles.');
   }
 });
 
 async function ptz(action) {
-  if (!currentDeviceId || !currentProfileToken) { alert('Select device first'); return; }
+  if (!currentDeviceId || !currentProfileToken) { showErrorModal('Please select a device first'); return; }
   const continuous = document.getElementById('continuousMoveCheckbox').checked ? '1' : '0';
   const body = new URLSearchParams();
   body.set('deviceId', currentDeviceId);
@@ -251,7 +301,7 @@ async function ptz(action) {
   body.set('continuous', continuous);
   const r = await fetch(BASE_URL + 'onvif/ptz', { method:'POST', body });
   const j = await r.json();
-  if (!j.ok) alert(j.error || 'PTZ error');
+  if (!j.ok) showErrorModal(j.error || 'PTZ error');
   if (continuous !== '1' && action !== 'stop' && j.ok) {
     setTimeout(()=>{ fetch(BASE_URL + 'onvif/ptz', { method:'POST', body: new URLSearchParams({deviceId:currentDeviceId, profileToken:currentProfileToken, action:'stop'}) }); }, 350);
   }

@@ -33,85 +33,93 @@ require_once __DIR__ . '/header.php';
   </a>
 </div>
 
-<div class="row">
+<div class="row g-3">
   <!-- Cameras Section -->
-  <div class="col-md-6">
+  <div class="col-12 col-lg-6">
     <div class="card mb-3">
-      <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="mb-0">Cameras</h5>
         <button class="btn btn-sm btn-accent" data-bs-toggle="modal" data-bs-target="#addCameraModal">Add Camera</button>
       </div>
       <div class="card-body p-0">
-        <table class="table table-dark table-hover mb-0">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>IP</th>
-              <th>PTZ</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (empty($cameras)): ?>
-            <tr><td colspan="4" class="text-center text-muted">No cameras configured</td></tr>
-            <?php else: ?>
-            <?php foreach ($cameras as $cam): ?>
-            <tr>
-              <td><?= htmlspecialchars($cam['name'] ?? '') ?></td>
-              <td><code><?= htmlspecialchars($cam['ip'] ?? '') ?></code></td>
-              <td><?= !empty($cam['allowptz']) ? '✓' : '✗' ?></td>
-              <td>
-                <button class="btn btn-sm btn-outline-light" 
-                        onclick="editCamera(<?= htmlspecialchars(json_encode($cam), ENT_QUOTES) ?>)">Edit</button>
-                <button class="btn btn-sm btn-outline-danger" 
-                        onclick="deleteCamera('<?= htmlspecialchars($cam['id'] ?? '', ENT_QUOTES) ?>')">Delete</button>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-            <?php endif; ?>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>IP</th>
+                <th class="d-none d-sm-table-cell">PTZ</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($cameras)): ?>
+              <tr><td colspan="4" class="text-center text-muted">No cameras configured</td></tr>
+              <?php else: ?>
+              <?php foreach ($cameras as $cam): ?>
+              <tr>
+                <td class="text-break"><?= htmlspecialchars($cam['name'] ?? '') ?></td>
+                <td><code class="text-break"><?= htmlspecialchars($cam['ip'] ?? '') ?></code></td>
+                <td class="d-none d-sm-table-cell"><?= !empty($cam['allowptz']) ? '✓' : '✗' ?></td>
+                <td>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-light" 
+                            onclick="editCamera(<?= htmlspecialchars(json_encode($cam), ENT_QUOTES) ?>)">Edit</button>
+                    <button class="btn btn-outline-danger" 
+                            onclick="deleteCamera('<?= htmlspecialchars($cam['id'] ?? '', ENT_QUOTES) ?>')">Del</button>
+                  </div>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Users Section -->
-  <div class="col-md-6">
+  <div class="col-12 col-lg-6">
     <div class="card mb-3">
-      <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="mb-0">Users</h5>
         <button class="btn btn-sm btn-accent" data-bs-toggle="modal" data-bs-target="#addUserModal">Add User</button>
       </div>
       <div class="card-body p-0">
-        <table class="table table-dark table-hover mb-0">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Admin</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (empty($users)): ?>
-            <tr><td colspan="3" class="text-center text-muted">No users configured</td></tr>
-            <?php else: ?>
-            <?php foreach ($users as $user): ?>
-            <tr>
-              <td><?= htmlspecialchars($user['username'] ?? '') ?></td>
-              <td><?= !empty($user['isadmin']) ? '✓ Admin' : 'User' ?></td>
-              <td>
-                <button class="btn btn-sm btn-outline-light" 
-                        onclick="editUser('<?= htmlspecialchars($user['username'] ?? '', ENT_QUOTES) ?>', <?= !empty($user['isadmin']) ? 'true' : 'false' ?>)">Edit</button>
-                <?php if (($_SESSION['user']['username'] ?? '') !== ($user['username'] ?? '')): ?>
-                <button class="btn btn-sm btn-outline-danger" 
-                        onclick="deleteUser('<?= htmlspecialchars($user['username'] ?? '', ENT_QUOTES) ?>')">Delete</button>
-                <?php endif; ?>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-            <?php endif; ?>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Admin</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($users)): ?>
+              <tr><td colspan="3" class="text-center text-muted">No users configured</td></tr>
+              <?php else: ?>
+              <?php foreach ($users as $user): ?>
+              <tr>
+                <td class="text-break"><?= htmlspecialchars($user['username'] ?? '') ?></td>
+                <td><?= !empty($user['isadmin']) ? '✓ Admin' : 'User' ?></td>
+                <td>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-light" 
+                            onclick="editUser('<?= htmlspecialchars($user['username'] ?? '', ENT_QUOTES) ?>', <?= !empty($user['isadmin']) ? 'true' : 'false' ?>)">Edit</button>
+                    <?php if (($_SESSION['user']['username'] ?? '') !== ($user['username'] ?? '')): ?>
+                    <button class="btn btn-outline-danger" 
+                            onclick="deleteUser('<?= htmlspecialchars($user['username'] ?? '', ENT_QUOTES) ?>')">Del</button>
+                    <?php endif; ?>
+                  </div>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
