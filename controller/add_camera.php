@@ -55,6 +55,67 @@ if (isset($_GET['test']) && $_GET['test'] === '1') {
     exit;
 }
 
+// PTZ test mode: try to move camera slightly to test PTZ control
+if (isset($_GET['test']) && $_GET['test'] === 'ptz') {
+    if ($ip === '') { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'ip required']); exit; }
+    if ($device_service_url === '') $device_service_url = "http://{$ip}:2020/onvif/device_service";
+    
+    if (!class_exists('Ponvif')) {
+        echo json_encode(['ok'=>false,'error'=>'ONVIF library not available']);
+        exit;
+    }
+    
+    if ($username === '' || $password === '') {
+        echo json_encode(['ok'=>false,'error'=>'Username and password required for PTZ control']);
+        exit;
+    }
+    
+    try {
+        $onvif = onvif_client($ip, $username, $password, $device_service_url);
+        
+        // Get the first available profile token
+        $sources = $onvif->getSources();
+        $profileToken = null;
+        
+        if (is_array($sources)) {
+            foreach ($sources as $source) {
+                if (is_array($source)) {
+                    foreach ($source as $profile) {
+                        if (is_array($profile) && isset($profile['profiletoken'])) {
+                            $profileToken = $profile['profiletoken'];
+                            break 2;
+                        }
+                        // Try alternative key names
+                        if (is_array($profile) && isset($profile['token'])) {
+                            $profileToken = $profile['token'];
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!$profileToken) {
+            echo json_encode(['ok'=>false,'error'=>'No profile token found - camera may not have PTZ capability']);
+            exit;
+        }
+        
+        // Perform a small PTZ movement to test
+        // Move up slightly then stop
+        $onvif->ptz_ContinuousMove($profileToken, 0.0, 0.3);
+        usleep(200000); // 200ms delay
+        $onvif->ptz_Stop($profileToken, 'true', 'true');
+        
+        echo json_encode([
+            'ok'=>true,
+            'message'=>'Camera moved successfully using profile: ' . $profileToken
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['ok'=>false,'error'=>'PTZ test failed: '.$e->getMessage()]);
+    }
+    exit;
+}
+
 if ($ip === '' || $name === '') { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'ip and name required']); exit; }
 
 $camerasCfg = load_json_cfg('cameras.json', ['cameras'=>[]]);

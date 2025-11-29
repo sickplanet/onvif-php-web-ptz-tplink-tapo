@@ -188,7 +188,7 @@ require_once __DIR__ . '/header.php';
 <div class="modal fade" id="addCameraModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content bg-dark text-light">
-      <form method="post" action="<?= htmlspecialchars($baseUrl) ?>admin">
+      <form method="post" action="<?= htmlspecialchars($baseUrl) ?>admin" id="addCameraForm">
         <input type="hidden" name="action" value="add_camera">
         <div class="modal-header">
           <h5 class="modal-title">Add Camera</h5>
@@ -196,36 +196,41 @@ require_once __DIR__ . '/header.php';
         </div>
         <div class="modal-body">
           <div class="mb-2">
-            <label class="form-label">Name *</label>
-            <input name="name" class="form-control" required>
+            <label class="form-label">Camera Name *</label>
+            <input name="name" id="addCamName" class="form-control" required placeholder="e.g. Front Door Camera">
           </div>
           <div class="mb-2">
             <label class="form-label">IP Address *</label>
-            <input name="ip" class="form-control" required placeholder="192.168.1.100">
+            <input name="ip" id="addCamIp" class="form-control" required placeholder="192.168.1.100">
           </div>
           <div class="mb-2">
-            <label class="form-label">Username</label>
-            <input name="username" class="form-control">
+            <label class="form-label">ONVIF Username</label>
+            <input name="username" id="addCamUsername" class="form-control" placeholder="Camera login username">
           </div>
           <div class="mb-2">
-            <label class="form-label">Password</label>
-            <input name="password" type="password" class="form-control">
+            <label class="form-label">ONVIF Password</label>
+            <input name="password" id="addCamPassword" type="password" class="form-control" placeholder="Camera login password">
           </div>
           <div class="mb-2">
             <label class="form-label">Device Service URL</label>
-            <input name="device_service_url" class="form-control" placeholder="http://IP:2020/onvif/device_service">
-            <small class="text-muted">Leave blank for default</small>
+            <input name="device_service_url" id="addCamDeviceUrl" class="form-control" placeholder="http://IP:2020/onvif/device_service">
+            <small class="text-muted">Leave blank for default (port 2020 for TP-Link Tapo cameras)</small>
           </div>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="allowptz" id="addCamPtz" checked>
             <label class="form-check-label" for="addCamPtz">Allow PTZ Control</label>
           </div>
-          <div class="form-check">
+          <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="allow_audio" id="addCamAudio">
             <label class="form-check-label" for="addCamAudio">Allow Audio</label>
           </div>
+          
+          <!-- Test Results Area -->
+          <div id="addCamTestResult" class="mt-3" style="display:none;"></div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer flex-wrap gap-2">
+          <button type="button" id="testConnectionBtn" class="btn btn-outline-info">Test Connection</button>
+          <button type="button" id="testPtzBtn" class="btn btn-outline-warning">Test PTZ</button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary">Add Camera</button>
         </div>
@@ -397,4 +402,119 @@ function deleteUser(username) {
   document.getElementById('deleteUsername').value = username;
   document.getElementById('deleteUserForm').submit();
 }
+
+// Base URL from PHP
+const BASE_URL = <?= json_encode($baseUrl) ?>;
+
+// Helper function to escape HTML
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (m) { 
+    return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]; 
+  });
+}
+
+// Get device service URL for add camera form
+function getAddCamDeviceUrl() {
+  const ip = document.getElementById('addCamIp').value;
+  const deviceUrl = document.getElementById('addCamDeviceUrl').value;
+  if (deviceUrl) return deviceUrl;
+  if (ip) return 'http://' + ip + ':2020/onvif/device_service';
+  return '';
+}
+
+// Show test result
+function showTestResult(message, isSuccess) {
+  const resultDiv = document.getElementById('addCamTestResult');
+  resultDiv.style.display = 'block';
+  resultDiv.className = 'mt-3 alert ' + (isSuccess ? 'alert-success' : 'alert-danger');
+  resultDiv.innerHTML = message;
+}
+
+// Test Connection button handler
+document.getElementById('testConnectionBtn').addEventListener('click', async function() {
+  const ip = document.getElementById('addCamIp').value;
+  const username = document.getElementById('addCamUsername').value;
+  const password = document.getElementById('addCamPassword').value;
+  const deviceUrl = getAddCamDeviceUrl();
+  
+  if (!ip) {
+    showTestResult('Please enter an IP address', false);
+    return;
+  }
+  
+  const resultDiv = document.getElementById('addCamTestResult');
+  resultDiv.style.display = 'block';
+  resultDiv.className = 'mt-3 alert alert-info';
+  resultDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Testing connection...';
+  
+  try {
+    const body = new URLSearchParams();
+    body.set('ip', ip);
+    body.set('username', username);
+    body.set('password', password);
+    body.set('device_service_url', deviceUrl);
+    
+    const res = await fetch(BASE_URL + 'controller/add_camera.php?test=1', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body.toString()
+    });
+    const j = await res.json();
+    if (j.ok) {
+      let info = '✓ Connection successful!';
+      if (j.manufacturer || j.model) {
+        info += '<br><small class="text-muted">Device: ' + escapeHtml(j.manufacturer || '') + ' ' + escapeHtml(j.model || '') + '</small>';
+      }
+      showTestResult(info, true);
+    } else {
+      showTestResult('✗ Connection failed: ' + escapeHtml(j.error || 'Unknown error'), false);
+    }
+  } catch (err) {
+    showTestResult('✗ Test error: ' + escapeHtml(err.message), false);
+  }
+});
+
+// Test PTZ button handler
+document.getElementById('testPtzBtn').addEventListener('click', async function() {
+  const ip = document.getElementById('addCamIp').value;
+  const username = document.getElementById('addCamUsername').value;
+  const password = document.getElementById('addCamPassword').value;
+  const deviceUrl = getAddCamDeviceUrl();
+  
+  if (!ip) {
+    showTestResult('Please enter an IP address', false);
+    return;
+  }
+  
+  const resultDiv = document.getElementById('addCamTestResult');
+  resultDiv.style.display = 'block';
+  resultDiv.className = 'mt-3 alert alert-info';
+  resultDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Testing PTZ... (moving camera slightly)';
+  
+  try {
+    const body = new URLSearchParams();
+    body.set('ip', ip);
+    body.set('username', username);
+    body.set('password', password);
+    body.set('device_service_url', deviceUrl);
+    
+    const res = await fetch(BASE_URL + 'controller/add_camera.php?test=ptz', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body.toString()
+    });
+    const j = await res.json();
+    if (j.ok) {
+      let info = '✓ PTZ test successful!';
+      if (j.message) {
+        info += '<br><small class="text-muted">' + escapeHtml(j.message) + '</small>';
+      }
+      showTestResult(info, true);
+    } else {
+      showTestResult('✗ PTZ test failed: ' + escapeHtml(j.error || 'Unknown error'), false);
+    }
+  } catch (err) {
+    showTestResult('✗ PTZ test error: ' + escapeHtml(err.message), false);
+  }
+});
 </script>
