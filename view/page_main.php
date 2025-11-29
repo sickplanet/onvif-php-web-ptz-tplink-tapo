@@ -41,7 +41,7 @@ require_once __DIR__ . '/header.php';
     <div id="mainPanel" class="card p-3">
       <div id="videoArea" class="video-wrapper">
         <div id="videoPlaceholder">Select a camera</div>
-        <img id="snapshotImg" class="img-fluid" style="display:none;max-width:100%" alt="Camera snapshot" />
+        <img id="snapshotImg" class="img-fluid" style="display:none" alt="Camera snapshot" />
       </div>
 
       <!-- Stream URIs - responsive text -->
@@ -117,7 +117,7 @@ require_once __DIR__ . '/header.php';
         </div>
         <div class="mb-3">
           <label class="form-label">Camera Name <span class="text-danger">*</span></label>
-          <input type="text" id="addCamName" class="form-control" required placeholder="e.g. Front Door Camera">
+          <input type="text" id="addCamName" class="form-control" required aria-required="true" placeholder="e.g. Front Door Camera">
         </div>
         <div class="mb-3">
           <label class="form-label">Username</label>

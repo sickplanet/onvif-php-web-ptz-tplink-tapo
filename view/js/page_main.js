@@ -49,6 +49,20 @@ function escapeHtml(s) {
 }
 function escapeJs(s) { return String(s || '').replace(/'/g,"\\'"); }
 
+// Helper to create loading spinner HTML
+function createLoadingSpinner(message) {
+  return `<div class="text-center py-4">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="mt-2 text-muted-custom">${escapeHtml(message)}</div>
+  </div>`;
+}
+
+function createStatusSpinner(message) {
+  return `<span class="spinner-border spinner-border-sm me-2"></span>${escapeHtml(message)}`;
+}
+
 function getDeviceUrl() {
   const ip = document.getElementById('addCamIp').value;
   let deviceUrl = document.getElementById('addCamDeviceUrl').value || document.getElementById('addCamXaddrs').value;
@@ -66,8 +80,8 @@ function showAddCamError(message) {
 // --- Scan button with loader & modal population ---
 document.getElementById('scanBtn').addEventListener('click', async () => {
   // Show modal immediately with loading spinner
-  document.getElementById('scanStatus').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning network for cameras...';
-  document.getElementById('scanResults').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><div class="mt-2 text-muted-custom">Discovering ONVIF devices...</div></div>';
+  document.getElementById('scanStatus').innerHTML = createStatusSpinner('Scanning network for cameras...');
+  document.getElementById('scanResults').innerHTML = createLoadingSpinner('Discovering ONVIF devices...');
   scanModal.show();
   
   document.getElementById('scanStatusText').textContent = 'Scanning...';
