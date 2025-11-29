@@ -53,6 +53,12 @@ function saveSettings(): void {
     $isPublic = !empty($_POST['isPublic']);
     $scanCidrs = trim($_POST['scan_cidrs'] ?? '');
     $allowedCidrs = trim($_POST['allowed_cidrs'] ?? '');
+    $cacheTtl = intval($_POST['cache_ttl_seconds'] ?? 86400);
+    $motionDetectionEnabled = !empty($_POST['motionDetectionEnabled']);
+    $browserNotificationsEnabled = !empty($_POST['browserNotificationsEnabled']);
+    
+    // Validate cache TTL (60 seconds to 1 week)
+    $cacheTtl = max(60, min(604800, $cacheTtl));
     
     // Parse CIDRs (one per line or comma-separated)
     $scanCidrsArray = array_filter(array_map('trim', preg_split('/[\n,]+/', $scanCidrs)));
@@ -77,6 +83,9 @@ function saveSettings(): void {
     $config['isPublic'] = $isPublic;
     $config['camera_discovery_cidrs'] = $scanCidrsArray;
     $config['allowed_cidrs'] = $allowedCidrsArray;
+    $config['cache_ttl_seconds'] = $cacheTtl;
+    $config['motionDetectionEnabled'] = $motionDetectionEnabled;
+    $config['browserNotificationsEnabled'] = $browserNotificationsEnabled;
     
     save_json_cfg('config.json', $config);
     
@@ -104,9 +113,12 @@ function addCamera(): void {
         $device_service_url = "http://{$ip}:2020/onvif/device_service";
     }
     
-    // Try to get device info
+    // Try to get device info and cache capabilities
     $manufacturer = '';
     $model = '';
+    $capabilities = null;
+    $hasAudio = false;
+    
     if ($username !== '' && $password !== '' && class_exists('Ponvif')) {
         try {
             $onvif = onvif_client($ip, $username, $password, $device_service_url);
@@ -115,6 +127,24 @@ function addCamera(): void {
                 $manufacturer = $info['Manufacturer'] ?? '';
                 $model = $info['Model'] ?? '';
             }
+            
+            // Get and cache capabilities
+            $capabilities = $onvif->getCapabilities();
+            
+            // Check for audio support
+            if (!empty($capabilities['Media']['Extension']['AudioSources']) || 
+                !empty($capabilities['Media']['Extension']['AudioOutputs'])) {
+                $hasAudio = true;
+            }
+            
+            // Cache capabilities to file
+            cacheDeviceCapabilities($ip, [
+                'capabilities' => $capabilities,
+                'deviceInfo' => $info,
+                'hasAudio' => $hasAudio,
+                'cached_at' => date('c')
+            ]);
+            
         } catch (Exception $e) {
             // Ignore - try unauthenticated
         }
@@ -142,7 +172,11 @@ function addCamera(): void {
             'low' => "rtsp://{$ip}:554/stream2",
         ],
         'allowptz' => !empty($_POST['allowptz']),
-        'allow_audio' => !empty($_POST['allow_audio'])
+        'allow_audio' => !empty($_POST['allow_audio']),
+        'ispublic' => !empty($_POST['ispublic']),
+        'hasAudio' => $hasAudio,
+        'hasPTZ' => null,  // Will be set by PTZ test
+        'ptzDirections' => []
     ];
     
     $cameras[] = $new;
@@ -150,6 +184,21 @@ function addCamera(): void {
     save_json_cfg('cameras.json', $camerasCfg);
     
     ErrorHandler::handleSuccess(['camera' => $new], null, 'Camera added successfully');
+}
+
+/**
+ * Cache device capabilities to JSON file
+ */
+function cacheDeviceCapabilities(string $ip, array $data): void {
+    $cacheDir = cfg_path('cameras-info');
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0750, true);
+    }
+    
+    $filename = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $ip) . '.json';
+    $filepath = $cacheDir . '/' . $filename;
+    
+    file_put_contents($filepath, json_encode($data, JSON_PRETTY_PRINT));
 }
 
 function editCamera(): void {
@@ -167,10 +216,14 @@ function editCamera(): void {
             $cam['name'] = trim($_POST['name'] ?? $cam['name']);
             $cam['ip'] = trim($_POST['ip'] ?? $cam['ip']);
             $cam['username'] = trim($_POST['username'] ?? $cam['username']);
-            $cam['password'] = trim($_POST['password'] ?? $cam['password']);
+            // Only update password if provided (non-empty)
+            if (!empty($_POST['password'])) {
+                $cam['password'] = $_POST['password'];
+            }
             $cam['device_service_url'] = trim($_POST['device_service_url'] ?? $cam['device_service_url']);
             $cam['allowptz'] = !empty($_POST['allowptz']);
             $cam['allow_audio'] = !empty($_POST['allow_audio']);
+            $cam['ispublic'] = !empty($_POST['ispublic']);
             $found = true;
             break;
         }

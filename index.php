@@ -148,6 +148,15 @@ switch ($first) {
         } elseif ($sub === 'profiles') {
             require_login();
             include __DIR__ . '/controller/profiles.php';
+        } elseif ($sub === 'snapshot') {
+            require_login();
+            include __DIR__ . '/controller/onvif/snapshot_proxy.php';
+        } elseif ($sub === 'test-ptz') {
+            require_login();
+            include __DIR__ . '/controller/onvif/test_ptz.php';
+        } elseif ($sub === 'events') {
+            require_login();
+            include __DIR__ . '/controller/onvif/events.php';
         } else {
             http_response_code(404);
             echo "Not Found";
