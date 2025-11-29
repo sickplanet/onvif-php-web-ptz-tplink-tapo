@@ -36,8 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]
         ]];
         file_put_contents($cfgdir . '/users.json', json_encode($users, JSON_PRETTY_PRINT));
-        // Save config.json
+        // Save config.json including base_url for dynamic routing
         $config = [
+            'base_url' => $baseUrl,
             'lan_cidr' => $lan_cidr,
             'isPublic' => true,
             'camera_discovery_cidrs' => [$lan_cidr],

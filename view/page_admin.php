@@ -25,6 +25,13 @@ require_once __DIR__ . '/header.php';
 </div>
 <?php endif; ?>
 
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Admin Panel</h4>
+  <a href="<?= htmlspecialchars($baseUrl) ?>" class="btn btn-outline-light">
+    <span>←</span> Back to Home
+  </a>
+</div>
+
 <div class="row">
   <!-- Cameras Section -->
   <div class="col-md-6">

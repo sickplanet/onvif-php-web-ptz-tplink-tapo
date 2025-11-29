@@ -3,6 +3,7 @@ let currentDeviceId = null;
 let currentProfileToken = null;
 // BASE_URL is defined in page_main.php before this script loads
 const scanModal = new bootstrap.Modal(document.getElementById('scanModal'), {});
+const addCameraModal = new bootstrap.Modal(document.getElementById('addCameraModal'), {});
 
 // --- Helpers ---
 function escapeHtml(s) {
@@ -92,19 +93,93 @@ function populateScanModal(devices) {
   scanModal.show();
 }
 
-// --- Add discovered camera (calls controller/add_camera.php) ---
-async function addDiscovered(ip, manufacturer, model, xaddrs) {
+// --- Add discovered camera (opens modal for username/password and test) ---
+function addDiscovered(ip, manufacturer, model, xaddrs) {
   const suggested = (manufacturer && model) ? (manufacturer + ' ' + model) : ('discovered-' + ip.replace(/[:.]/g,'-'));
-  const name = prompt('Friendly name for camera', suggested);
-  if (name === null) return;
+  
+  // Populate modal fields
+  document.getElementById('addCamIp').value = ip;
+  document.getElementById('addCamIpDisplay').value = ip;
+  document.getElementById('addCamManufacturer').value = manufacturer || '';
+  document.getElementById('addCamModel').value = model || '';
+  document.getElementById('addCamXaddrs').value = xaddrs || ('http://' + ip + ':2020/onvif/device_service');
+  document.getElementById('addCamName').value = suggested;
+  document.getElementById('addCamUsername').value = '';
+  document.getElementById('addCamPassword').value = '';
+  document.getElementById('addCamDeviceUrl').value = xaddrs || '';
+  document.getElementById('addCamTestResult').style.display = 'none';
+  document.getElementById('addCamTestResult').innerHTML = '';
+  
+  addCameraModal.show();
+}
+
+// --- Test Connection button handler ---
+document.getElementById('testConnectionBtn').addEventListener('click', async () => {
+  const ip = document.getElementById('addCamIp').value;
+  const username = document.getElementById('addCamUsername').value;
+  const password = document.getElementById('addCamPassword').value;
+  let deviceUrl = document.getElementById('addCamDeviceUrl').value || document.getElementById('addCamXaddrs').value;
+  if (!deviceUrl) deviceUrl = 'http://' + ip + ':2020/onvif/device_service';
+  
+  const resultDiv = document.getElementById('addCamTestResult');
+  resultDiv.style.display = 'block';
+  resultDiv.className = 'mt-2 alert alert-info';
+  resultDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Testing connection...';
+  
+  try {
+    const body = new URLSearchParams();
+    body.set('ip', ip);
+    body.set('username', username);
+    body.set('password', password);
+    body.set('device_service_url', deviceUrl);
+    
+    const res = await fetch(BASE_URL + 'controller/add_camera.php?test=1', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body.toString()
+    });
+    const j = await res.json();
+    if (j.ok) {
+      resultDiv.className = 'mt-2 alert alert-success';
+      let info = 'Connection successful!';
+      if (j.manufacturer || j.model) {
+        info += '<br><small>Device: ' + escapeHtml(j.manufacturer || '') + ' ' + escapeHtml(j.model || '') + '</small>';
+      }
+      resultDiv.innerHTML = info;
+    } else {
+      resultDiv.className = 'mt-2 alert alert-danger';
+      resultDiv.innerHTML = 'Connection failed: ' + escapeHtml(j.error || 'Unknown error');
+    }
+  } catch (err) {
+    resultDiv.className = 'mt-2 alert alert-danger';
+    resultDiv.innerHTML = 'Test error: ' + escapeHtml(err.message);
+  }
+});
+
+// --- Confirm Add Camera button handler ---
+document.getElementById('confirmAddCameraBtn').addEventListener('click', async () => {
+  const ip = document.getElementById('addCamIp').value;
+  const name = document.getElementById('addCamName').value.trim();
+  const username = document.getElementById('addCamUsername').value;
+  const password = document.getElementById('addCamPassword').value;
+  const manufacturer = document.getElementById('addCamManufacturer').value;
+  const model = document.getElementById('addCamModel').value;
+  let deviceUrl = document.getElementById('addCamDeviceUrl').value || document.getElementById('addCamXaddrs').value;
+  if (!deviceUrl) deviceUrl = 'http://' + ip + ':2020/onvif/device_service';
+  
+  if (!name) {
+    alert('Please enter a camera name');
+    return;
+  }
+  
   const body = new URLSearchParams();
   body.set('ip', ip);
   body.set('name', name);
-  body.set('manufacturer', manufacturer || '');
-  body.set('model', model || '');
-  body.set('device_service_url', xaddrs || ('http://' + ip + ':2020/onvif/device_service'));
-  body.set('username', '');
-  body.set('password', '');
+  body.set('manufacturer', manufacturer);
+  body.set('model', model);
+  body.set('device_service_url', deviceUrl);
+  body.set('username', username);
+  body.set('password', password);
 
   try {
     const res = await fetch(BASE_URL + 'controller/add_camera.php', {
@@ -114,13 +189,17 @@ async function addDiscovered(ip, manufacturer, model, xaddrs) {
     });
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'add failed');
-    // success: close modal and reload to show new camera in selector
+    // success: close modals and reload to show new camera in selector
+    addCameraModal.hide();
     scanModal.hide();
     location.reload();
   } catch (err) {
-    alert('Failed to add camera: ' + err.message);
+    const resultDiv = document.getElementById('addCamTestResult');
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'mt-2 alert alert-danger';
+    resultDiv.innerHTML = 'Failed to add camera: ' + escapeHtml(err.message);
   }
-}
+});
 
 // --- Device select & PTZ logic (unchanged) ---
 document.getElementById('deviceSelect').addEventListener('change', async function(){
