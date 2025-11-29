@@ -2,7 +2,7 @@
     "users": [
         {
             "username": "lucian",
-            "password_hash": "$2y$10$Y6P7dX0rbn1WglcUPFQNOuuo7t8iBkjFCziWzw.zc8jEoTxeUOG82",
+            "password_hash": "$2y$10$IyojmGXV7BIz7f5Dh\/ITHO0q4psEYczIGepl2gqyrmN9naaeifndG",
             "isadmin": true,
             "cameras": []
         }
