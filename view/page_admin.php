@@ -157,6 +157,16 @@ require_once __DIR__ . '/header.php';
                           placeholder="192.168.1.0/24&#10;10.0.0.0/8"><?= htmlspecialchars(implode("\n", $config['camera_discovery_cidrs'] ?? [])) ?></textarea>
                 <small class="text-muted">Enter one CIDR per line. Used for scanning/discovering cameras on your network.</small>
               </div>
+              
+              <div class="mb-3">
+                <label class="form-label"><strong>Cache TTL (seconds)</strong></label>
+                <input type="number" name="cache_ttl_seconds" class="form-control bg-dark text-light" 
+                       value="<?= htmlspecialchars($config['cache_ttl_seconds'] ?? 86400) ?>" min="60" max="604800">
+                <small class="text-muted">
+                  How long to cache camera capabilities and stream URIs. Default: 86400 (24 hours).<br>
+                  Range: 60 seconds to 604800 (1 week).
+                </small>
+              </div>
             </div>
             
             <div class="col-md-6">
@@ -173,6 +183,18 @@ require_once __DIR__ . '/header.php';
               <div class="mb-3">
                 <label class="form-label text-muted"><strong>Current Client IP:</strong></label>
                 <code class="ms-2"><?= htmlspecialchars($_SERVER['REMOTE_ADDR'] ?? 'unknown') ?></code>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label"><strong>Event Settings</strong></label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="motionDetectionEnabled" name="motionDetectionEnabled" <?= !empty($config['motionDetectionEnabled'] ?? true) ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="motionDetectionEnabled">Enable Motion Detection</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="browserNotificationsEnabled" name="browserNotificationsEnabled" <?= !empty($config['browserNotificationsEnabled'] ?? true) ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="browserNotificationsEnabled">Enable Browser Notifications</label>
+                </div>
               </div>
             </div>
           </div>
@@ -220,14 +242,21 @@ require_once __DIR__ . '/header.php';
             <input class="form-check-input" type="checkbox" name="allowptz" id="addCamPtz" checked>
             <label class="form-check-label" for="addCamPtz">Allow PTZ Control</label>
           </div>
-          <div class="form-check">
+          <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="allow_audio" id="addCamAudio">
             <label class="form-check-label" for="addCamAudio">Allow Audio</label>
           </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="ispublic" id="addCamPublic">
+            <label class="form-check-label" for="addCamPublic">Public Camera (visible without login)</label>
+          </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add Camera</button>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-info" onclick="testPTZ()" id="testPtzBtn">Test PTZ</button>
+          <div>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Camera</button>
+          </div>
         </div>
       </form>
     </div>
@@ -270,14 +299,27 @@ require_once __DIR__ . '/header.php';
             <input class="form-check-input" type="checkbox" name="allowptz" id="editCamPtz">
             <label class="form-check-label" for="editCamPtz">Allow PTZ Control</label>
           </div>
-          <div class="form-check">
+          <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="allow_audio" id="editCamAudio">
             <label class="form-check-label" for="editCamAudio">Allow Audio</label>
           </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="ispublic" id="editCamPublic">
+            <label class="form-check-label" for="editCamPublic">Public Camera (visible without login)</label>
+          </div>
+          
+          <!-- PTZ Test Results -->
+          <div id="editCamPtzInfo" class="mt-3 small text-muted" style="display:none;">
+            <strong>PTZ Capabilities:</strong>
+            <span id="editCamPtzStatus"></span>
+          </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Changes</button>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-info" onclick="testPTZEdit()" id="testPtzBtnEdit">Test PTZ</button>
+          <div>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
         </div>
       </form>
     </div>
@@ -362,13 +404,41 @@ require_once __DIR__ . '/header.php';
   <input type="hidden" name="username" id="deleteUsername">
 </form>
 
+<!-- PTZ Test Results Modal -->
+<div class="modal fade" id="ptzTestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title">PTZ Test Results</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="ptzTestBody">
+        <div class="text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Testing...</span>
+          </div>
+          <p class="mt-2">Testing PTZ capabilities...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php require_once __DIR__ . '/footer.php'; ?>
 
 <script>
+const BASE_URL = <?= json_encode($baseUrl) ?>;
 const editCameraModal = new bootstrap.Modal(document.getElementById('editCameraModal'));
 const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+const ptzTestModal = new bootstrap.Modal(document.getElementById('ptzTestModal'));
+
+let currentEditCameraId = null;
 
 function editCamera(cam) {
+  currentEditCameraId = cam.id;
   document.getElementById('editCamId').value = cam.id || '';
   document.getElementById('editCamName').value = cam.name || '';
   document.getElementById('editCamIp').value = cam.ip || '';
@@ -377,6 +447,24 @@ function editCamera(cam) {
   document.getElementById('editCamUrl').value = cam.device_service_url || '';
   document.getElementById('editCamPtz').checked = !!cam.allowptz;
   document.getElementById('editCamAudio').checked = !!cam.allow_audio;
+  document.getElementById('editCamPublic').checked = !!cam.ispublic;
+  
+  // Show PTZ info if available
+  const ptzInfo = document.getElementById('editCamPtzInfo');
+  const ptzStatus = document.getElementById('editCamPtzStatus');
+  
+  if (cam.hasPTZ !== null && cam.hasPTZ !== undefined) {
+    ptzInfo.style.display = 'block';
+    if (cam.hasPTZ) {
+      const dirs = cam.ptzDirections || [];
+      ptzStatus.innerHTML = '<span class="text-success">✓ PTZ Available</span> (' + dirs.join(', ') + ')';
+    } else {
+      ptzStatus.innerHTML = '<span class="text-warning">✗ PTZ Not Available</span>';
+    }
+  } else {
+    ptzInfo.style.display = 'none';
+  }
+  
   editCameraModal.show();
 }
 
@@ -396,5 +484,97 @@ function deleteUser(username) {
   if (!confirm('Are you sure you want to delete user "' + username + '"?')) return;
   document.getElementById('deleteUsername').value = username;
   document.getElementById('deleteUserForm').submit();
+}
+
+// PTZ Test functions
+async function testPTZ() {
+  // This would need the camera to be saved first
+  alert('Please save the camera first, then use "Test PTZ" from the Edit menu.');
+}
+
+async function testPTZEdit() {
+  if (!currentEditCameraId) {
+    alert('No camera selected');
+    return;
+  }
+  
+  const testBody = document.getElementById('ptzTestBody');
+  testBody.innerHTML = `
+    <div class="text-center">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Testing...</span>
+      </div>
+      <p class="mt-2">Testing PTZ capabilities...</p>
+      <p class="small text-muted">This may take 10-15 seconds</p>
+    </div>`;
+  
+  ptzTestModal.show();
+  
+  try {
+    const formData = new FormData();
+    formData.append('deviceId', currentEditCameraId);
+    
+    const res = await fetch(BASE_URL + 'onvif/test-ptz', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    
+    let html = '';
+    if (data.ok && data.hasPTZ) {
+      html = `
+        <div class="alert alert-success">
+          <strong>✓ PTZ Supported</strong>
+        </div>
+        <h6>Test Results:</h6>
+        <table class="table table-dark table-sm">
+          <thead><tr><th>Direction</th><th>Status</th></tr></thead>
+          <tbody>`;
+      
+      const results = data.results?.tests || [];
+      results.forEach(test => {
+        const icon = test.success ? '✓' : '✗';
+        const cls = test.success ? 'text-success' : 'text-danger';
+        html += `<tr><td>${test.action}</td><td class="${cls}">${icon} ${test.message}</td></tr>`;
+      });
+      
+      html += `</tbody></table>
+        <p class="small text-muted">Available directions: ${data.ptzDirections.join(', ')}</p>`;
+      
+      // Update the edit form PTZ info
+      const ptzInfo = document.getElementById('editCamPtzInfo');
+      const ptzStatus = document.getElementById('editCamPtzStatus');
+      ptzInfo.style.display = 'block';
+      ptzStatus.innerHTML = '<span class="text-success">✓ PTZ Available</span> (' + data.ptzDirections.join(', ') + ')';
+      
+    } else if (data.ok && !data.hasPTZ) {
+      html = `
+        <div class="alert alert-warning">
+          <strong>✗ PTZ Not Supported</strong>
+          <p class="mb-0 small">This camera does not have PTZ capabilities.</p>
+        </div>`;
+      
+      // Update the edit form PTZ info  
+      const ptzInfo = document.getElementById('editCamPtzInfo');
+      const ptzStatus = document.getElementById('editCamPtzStatus');
+      ptzInfo.style.display = 'block';
+      ptzStatus.innerHTML = '<span class="text-warning">✗ PTZ Not Available</span>';
+    } else {
+      html = `
+        <div class="alert alert-danger">
+          <strong>Error</strong>
+          <p class="mb-0">${data.error || 'Unknown error occurred'}</p>
+        </div>`;
+    }
+    
+    testBody.innerHTML = html;
+    
+  } catch (err) {
+    testBody.innerHTML = `
+      <div class="alert alert-danger">
+        <strong>Error</strong>
+        <p class="mb-0">${err.message}</p>
+      </div>`;
+  }
 }
 </script>

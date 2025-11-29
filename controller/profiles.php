@@ -137,10 +137,20 @@ try {
         }
     }
 
+    // Get camera config for PTZ controls
+    $cameraConfig = [
+        'hasPTZ' => $device['hasPTZ'] ?? null,
+        'ptzDirections' => $device['ptzDirections'] ?? [],
+        'allowptz' => $device['allowptz'] ?? true,
+        'hasAudio' => $device['hasAudio'] ?? false,
+        'allow_audio' => $device['allow_audio'] ?? false
+    ];
+
     ErrorHandler::json([
         'ok' => true,
         'deviceId' => $deviceId,
-        'profiles' => $profiles
+        'profiles' => $profiles,
+        'cameraConfig' => $cameraConfig
     ]);
 } catch (Throwable $e) {
     error_log("profiles.php error: " . $e->getMessage());

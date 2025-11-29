@@ -1,9 +1,75 @@
 // --- State ---
 let currentDeviceId = null;
 let currentProfileToken = null;
+let currentCameraConfig = null;
+let liveViewInterval = null;
+let isLiveViewPlaying = false;
+const LIVE_VIEW_REFRESH_RATE = 1000; // ms between snapshot refreshes
+
 // BASE_URL is defined in page_main.php before this script loads
 const scanModal = new bootstrap.Modal(document.getElementById('scanModal'), {});
 const addCameraModal = new bootstrap.Modal(document.getElementById('addCameraModal'), {});
+
+// --- Toast Notifications ---
+function showToast(message, type = 'info', duration = 3000) {
+  const toastContainer = document.getElementById('toastContainer');
+  if (!toastContainer) return;
+  
+  const toastId = 'toast-' + Date.now();
+  const bgClass = {
+    'success': 'bg-success',
+    'error': 'bg-danger',
+    'warning': 'bg-warning text-dark',
+    'info': 'bg-info text-dark'
+  }[type] || 'bg-secondary';
+  
+  const toastHtml = `
+    <div id="${toastId}" class="toast ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-body d-flex justify-content-between align-items-center">
+        <span>${escapeHtml(message)}</span>
+        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>`;
+  toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+  
+  const toastEl = document.getElementById(toastId);
+  const toast = new bootstrap.Toast(toastEl, { delay: duration });
+  toast.show();
+  
+  toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+}
+
+// --- Browser Notifications for Motion Detection ---
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    console.log('Browser does not support notifications');
+    return false;
+  }
+  
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  
+  const permission = await Notification.requestPermission();
+  return permission === 'granted';
+}
+
+function showBrowserNotification(title, body, icon = null) {
+  if (Notification.permission !== 'granted') return;
+  
+  const notification = new Notification(title, {
+    body: body,
+    icon: icon || (BASE_URL + 'view/img/camera-icon.png'),
+    tag: 'motion-detection',
+    requireInteraction: false
+  });
+  
+  notification.onclick = () => {
+    window.focus();
+    notification.close();
+  };
+  
+  setTimeout(() => notification.close(), 5000);
+}
 
 // --- Alert Modal (replaces standard alert()) ---
 // Create error/alert modal if not exists
@@ -76,6 +142,120 @@ function showAddCamError(message) {
   resultDiv.className = 'mt-2 alert alert-danger';
   resultDiv.innerHTML = escapeHtml(message);
 }
+
+// --- Live View (Snapshot Refresh) Web Player ---
+function startLiveView() {
+  if (liveViewInterval) return;
+  if (!currentDeviceId || !currentProfileToken) return;
+  
+  isLiveViewPlaying = true;
+  updateLiveViewUI();
+  
+  liveViewInterval = setInterval(() => {
+    refreshSnapshot();
+  }, LIVE_VIEW_REFRESH_RATE);
+  
+  // Initial refresh
+  refreshSnapshot();
+}
+
+function stopLiveView() {
+  if (liveViewInterval) {
+    clearInterval(liveViewInterval);
+    liveViewInterval = null;
+  }
+  isLiveViewPlaying = false;
+  updateLiveViewUI();
+}
+
+function toggleLiveView() {
+  if (isLiveViewPlaying) {
+    stopLiveView();
+  } else {
+    startLiveView();
+  }
+}
+
+function updateLiveViewUI() {
+  const playIcon = document.getElementById('playIcon');
+  const liveIndicator = document.getElementById('liveIndicator');
+  
+  if (playIcon) {
+    playIcon.textContent = isLiveViewPlaying ? '⏸' : '▶';
+  }
+  if (liveIndicator) {
+    liveIndicator.style.display = isLiveViewPlaying ? 'inline-block' : 'none';
+  }
+}
+
+function refreshSnapshot() {
+  if (!currentDeviceId || !currentProfileToken) return;
+  
+  const img = document.getElementById('snapshotImg');
+  const loader = document.getElementById('videoLoader');
+  
+  // Use proxy endpoint to avoid CORS issues
+  const snapshotUrl = BASE_URL + 'onvif/snapshot?deviceId=' + 
+    encodeURIComponent(currentDeviceId) + 
+    '&profileToken=' + encodeURIComponent(currentProfileToken) +
+    '&t=' + Date.now(); // Cache buster
+  
+  // Create a new image to preload
+  const newImg = new Image();
+  newImg.onload = function() {
+    img.src = this.src;
+    img.style.display = 'block';
+    document.getElementById('videoPlaceholder').style.display = 'none';
+    if (loader) loader.style.display = 'none';
+  };
+  newImg.onerror = function() {
+    // Keep showing the last frame on error
+    if (loader) loader.style.display = 'none';
+  };
+  newImg.src = snapshotUrl;
+}
+
+// --- PTZ Controls with event handling ---
+function updatePTZControls(cameraConfig) {
+  const ptzControls = document.getElementById('ptzControls');
+  if (!ptzControls) return;
+  
+  // Check if PTZ is disabled for this camera
+  if (cameraConfig && cameraConfig.hasPTZ === false) {
+    ptzControls.style.display = 'none';
+    return;
+  }
+  
+  ptzControls.style.display = 'block';
+  
+  // Check available directions
+  const availableDirections = cameraConfig?.ptzDirections || ['up', 'down', 'left', 'right', 'zoom_in', 'zoom_out'];
+  
+  // Hide/show individual buttons based on available directions
+  const directionMap = {
+    'up': 'ptzUp',
+    'down': 'ptzDown', 
+    'left': 'ptzLeft',
+    'right': 'ptzRight',
+    'zoom_in': 'ptzZoomIn',
+    'zoom_out': 'ptzZoomOut'
+  };
+  
+  Object.entries(directionMap).forEach(([dir, elementId]) => {
+    const btn = document.getElementById(elementId);
+    if (btn) {
+      btn.style.display = availableDirections.includes(dir) ? 'block' : 'none';
+    }
+  });
+}
+
+// Attach event listeners to PTZ buttons
+document.querySelectorAll('.ptz-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const action = this.getAttribute('data-action');
+    if (action) ptz(action);
+  });
+});
 
 // --- Scan button with loader & modal population ---
 document.getElementById('scanBtn').addEventListener('click', async () => {
@@ -274,12 +454,31 @@ document.getElementById('confirmAddCameraBtn').addEventListener('click', async (
 // --- Device select & PTZ logic (updated to use simplified profiles structure) ---
 document.getElementById('deviceSelect').addEventListener('change', async function(){
   const id = this.value;
-  if (!id) return;
+  if (!id) {
+    // Stop live view when no camera selected
+    stopLiveView();
+    document.getElementById('liveViewControls').style.display = 'none';
+    return;
+  }
+  
   currentDeviceId = id;
+  
+  // Show loader
+  const loader = document.getElementById('videoLoader');
+  if (loader) loader.style.display = 'block';
+  
   const r = await fetch(BASE_URL + 'onvif/profiles?deviceId=' + encodeURIComponent(id));
   const j = await r.json();
   document.getElementById('debugArea').textContent = JSON.stringify(j, null, 2);
-  if (!j.ok) { showErrorModal(j.error || 'Error fetching profiles'); return; }
+  if (!j.ok) { 
+    if (loader) loader.style.display = 'none';
+    showErrorModal(j.error || 'Error fetching profiles'); 
+    return; 
+  }
+  
+  // Store camera config for PTZ control display
+  currentCameraConfig = j.cameraConfig || {};
+  updatePTZControls(currentCameraConfig);
   
   // Use new simplified profiles structure: {ok: true, profiles: [{name, token}, ...]}
   const profiles = j.profiles || [];
@@ -291,16 +490,19 @@ document.getElementById('deviceSelect').addEventListener('change', async functio
     document.getElementById('debugArea').textContent = JSON.stringify(sj, null, 2);
     document.getElementById('streamUri').textContent = sj.streamUri || '-';
     document.getElementById('snapshotUri').textContent = sj.snapshotUri || '-';
-    if (sj.snapshotUri && sj.snapshotUri.startsWith('http')) {
-      document.getElementById('snapshotImg').src = sj.snapshotUri;
-      document.getElementById('snapshotImg').style.display = 'block';
-      document.getElementById('videoPlaceholder').style.display = 'none';
-    } else {
-      document.getElementById('snapshotImg').style.display = 'none';
-      document.getElementById('videoPlaceholder').style.display = 'block';
-      document.getElementById('videoPlaceholder').textContent = 'RTSP: ' + (sj.rtspHints?.high || sj.streamUri || '-');
-    }
+    
+    // Show live view controls
+    document.getElementById('liveViewControls').style.display = 'block';
+    
+    // Start with a snapshot refresh using the proxy
+    refreshSnapshot();
+    
+    // Auto-start live view
+    startLiveView();
+    
+    if (loader) loader.style.display = 'none';
   } else {
+    if (loader) loader.style.display = 'none';
     showErrorModal('No profile token found for device. The camera may require authentication or does not support media profiles.');
   }
 });
@@ -313,10 +515,47 @@ async function ptz(action) {
   body.set('profileToken', currentProfileToken);
   body.set('action', action);
   body.set('continuous', continuous);
-  const r = await fetch(BASE_URL + 'onvif/ptz', { method:'POST', body });
-  const j = await r.json();
-  if (!j.ok) showErrorModal(j.error || 'PTZ error');
-  if (continuous !== '1' && action !== 'stop' && j.ok) {
-    setTimeout(()=>{ fetch(BASE_URL + 'onvif/ptz', { method:'POST', body: new URLSearchParams({deviceId:currentDeviceId, profileToken:currentProfileToken, action:'stop'}) }); }, 350);
+  
+  try {
+    const r = await fetch(BASE_URL + 'onvif/ptz', { method:'POST', body });
+    const j = await r.json();
+    
+    if (!j.ok) {
+      // Check for max rotation error
+      if (j.error && (j.error.includes('limit') || j.error.includes('max') || j.error.includes('boundary'))) {
+        showToast('Max rotation reached', 'warning');
+      } else {
+        showToast(j.error || 'PTZ error', 'error');
+      }
+      return;
+    }
+    
+    // Check for PTZ limit reached response
+    if (j.limitReached) {
+      showToast('Max rotation reached', 'warning');
+    }
+    
+    if (continuous !== '1' && action !== 'stop' && j.ok) {
+      setTimeout(()=>{ 
+        fetch(BASE_URL + 'onvif/ptz', { 
+          method:'POST', 
+          body: new URLSearchParams({
+            deviceId: currentDeviceId, 
+            profileToken: currentProfileToken, 
+            action: 'stop'
+          }) 
+        }); 
+      }, 350);
+    }
+  } catch (err) {
+    showToast('PTZ error: ' + err.message, 'error');
   }
 }
+
+// Request notification permission on page load
+requestNotificationPermission();
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+  stopLiveView();
+});
