@@ -11,6 +11,20 @@ function escapeHtml(s) {
 }
 function escapeJs(s) { return String(s || '').replace(/'/g,"\\'"); }
 
+function getDeviceUrl() {
+  const ip = document.getElementById('addCamIp').value;
+  let deviceUrl = document.getElementById('addCamDeviceUrl').value || document.getElementById('addCamXaddrs').value;
+  if (!deviceUrl) deviceUrl = 'http://' + ip + ':2020/onvif/device_service';
+  return deviceUrl;
+}
+
+function showAddCamError(message) {
+  const resultDiv = document.getElementById('addCamTestResult');
+  resultDiv.style.display = 'block';
+  resultDiv.className = 'mt-2 alert alert-danger';
+  resultDiv.innerHTML = escapeHtml(message);
+}
+
 // --- Scan button with loader & modal population ---
 document.getElementById('scanBtn').addEventListener('click', async () => {
   document.getElementById('scanStatusText').textContent = 'Scanning...';
@@ -118,8 +132,7 @@ document.getElementById('testConnectionBtn').addEventListener('click', async () 
   const ip = document.getElementById('addCamIp').value;
   const username = document.getElementById('addCamUsername').value;
   const password = document.getElementById('addCamPassword').value;
-  let deviceUrl = document.getElementById('addCamDeviceUrl').value || document.getElementById('addCamXaddrs').value;
-  if (!deviceUrl) deviceUrl = 'http://' + ip + ':2020/onvif/device_service';
+  const deviceUrl = getDeviceUrl();
   
   const resultDiv = document.getElementById('addCamTestResult');
   resultDiv.style.display = 'block';
@@ -164,11 +177,10 @@ document.getElementById('confirmAddCameraBtn').addEventListener('click', async (
   const password = document.getElementById('addCamPassword').value;
   const manufacturer = document.getElementById('addCamManufacturer').value;
   const model = document.getElementById('addCamModel').value;
-  let deviceUrl = document.getElementById('addCamDeviceUrl').value || document.getElementById('addCamXaddrs').value;
-  if (!deviceUrl) deviceUrl = 'http://' + ip + ':2020/onvif/device_service';
+  const deviceUrl = getDeviceUrl();
   
   if (!name) {
-    alert('Please enter a camera name');
+    showAddCamError('Please enter a camera name');
     return;
   }
   
@@ -194,10 +206,7 @@ document.getElementById('confirmAddCameraBtn').addEventListener('click', async (
     scanModal.hide();
     location.reload();
   } catch (err) {
-    const resultDiv = document.getElementById('addCamTestResult');
-    resultDiv.style.display = 'block';
-    resultDiv.className = 'mt-2 alert alert-danger';
-    resultDiv.innerHTML = 'Failed to add camera: ' + escapeHtml(err.message);
+    showAddCamError('Failed to add camera: ' + err.message);
   }
 });
 
