@@ -4,6 +4,10 @@
  * This allows the web browser to display snapshots without CORS issues
  * and handles camera authentication transparently.
  */
+
+// Minimum size in bytes for a valid image response
+const MIN_IMAGE_SIZE = 1000;
+
 require_once __DIR__ . '/../../onvif_client.php';
 session_start();
 
@@ -119,7 +123,7 @@ foreach ($fallbackUrls as $url) {
     curl_close($ch);
     
     // Check if we got a valid image
-    if ($httpCode === 200 && $result && strlen($result) > 1000) {
+    if ($httpCode === 200 && $result && strlen($result) > MIN_IMAGE_SIZE) {
         // Verify it's actually an image
         if (strpos($mimeType, 'image/') === 0 || 
             substr($result, 0, 2) === "\xFF\xD8" ||  // JPEG magic bytes
