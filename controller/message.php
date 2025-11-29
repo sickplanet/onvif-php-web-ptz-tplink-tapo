@@ -1,6 +1,8 @@
 <?php
 // Message redirect / handler (used by index router)
 // Usage: redirect with GET params ?m=Your+message
+// Uses BASE_URL constant (defined in index.php)
+$baseUrl = defined('BASE_URL') ? BASE_URL : '/';
 $msg = $_GET['m'] ?? 'Unknown message';
 ?>
 <!doctype html>
@@ -9,7 +11,7 @@ $msg = $_GET['m'] ?? 'Unknown message';
   <div style="max-width:900px;padding:20px;border:1px solid #333;background:#000;">
     <h2>Message</h2>
     <p><?=htmlspecialchars($msg, ENT_QUOTES)?></p>
-    <p><a href="/onvif-ui/">Back</a></p>
+    <p><a href="<?= htmlspecialchars($baseUrl) ?>">Back</a></p>
   </div>
 </body>
 </html>

@@ -1,5 +1,7 @@
 <?php
 // header.php - modular header, includes CSS and dark/light toggle script
+// Uses BASE_URL constant (defined in index.php)
+$baseUrl = defined('BASE_URL') ? BASE_URL : '/';
 ?>
 <!doctype html>
 <html>
@@ -7,9 +9,9 @@
   <meta charset="utf-8">
   <title>Tp-Link (Tapo) PHP Live Web UI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="view/css/loader.css" rel="stylesheet">
+  <!-- Bootstrap CSS (local submodule) -->
+  <link href="<?= htmlspecialchars($baseUrl) ?>view/external/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="<?= htmlspecialchars($baseUrl) ?>view/css/loader.css" rel="stylesheet">
   <style>
     :root {
       --bg: #0b0b0b;
@@ -51,11 +53,14 @@
 <body>
 <nav class="navbar navbar-expand-lg" style="background:var(--card)">
   <div class="container-fluid">
-    <a class="navbar-brand text-light" href="/onvif-ui/">Tp-Link (Tapo) Web UI</a>
+    <a class="navbar-brand text-light" href="<?= htmlspecialchars($baseUrl) ?>">Tp-Link (Tapo) Web UI</a>
     <div class="d-flex align-items-center gap-2">
       <div class="me-2 text-muted-custom small" id="themeToggleText">Dark</div>
       <button class="btn btn-sm btn-outline-light theme-toggle" onclick="toggleTheme();">Toggle Theme</button>
-      <a class="btn btn-sm btn-outline-light" href="/onvif-ui/login?logout=1">Logout</a>
+      <?php if (!empty($_SESSION['user']['isadmin'])): ?>
+      <a class="btn btn-sm btn-outline-warning" href="<?= htmlspecialchars($baseUrl) ?>admin">Admin</a>
+      <?php endif; ?>
+      <a class="btn btn-sm btn-outline-light" href="<?= htmlspecialchars($baseUrl) ?>login?logout=1">Logout</a>
     </div>
   </div>
 </nav>

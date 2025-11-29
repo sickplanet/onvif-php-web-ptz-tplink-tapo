@@ -1,13 +1,15 @@
 <?php
 // Setup controller: create initial admin, basic configuration and cfg/configured flag
+// Uses BASE_URL constant (defined in index.php)
 require_once __DIR__ . '/../onvif_client.php';
 
+$baseUrl = defined('BASE_URL') ? BASE_URL : '/';
 $cfgdir = __DIR__ . '/../cfg';
 $configuredFile = $cfgdir . '/configured';
 
 // if already configured, redirect with message
 if (file_exists($configuredFile) && ($_SERVER['REQUEST_METHOD'] !== 'POST')) {
-    header('Location: /onvif-ui/message?m=Already+configured');
+    header('Location: ' . $baseUrl . 'message?m=Already+configured');
     exit;
 }
 
@@ -54,18 +56,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!doctype html>
 <html><head><meta charset="utf-8"><title>Setup</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"></head>
+<link href="<?= htmlspecialchars($baseUrl) ?>view/external/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet"></head>
 <body class="bg-dark text-light">
 <div class="container py-5">
   <h2>Initial Setup</h2>
   <?php if ($ok): ?>
     <div class="alert alert-success">Setup complete. You can login now.</div>
-    <a class="btn btn-primary" href="/onvif-ui/login">Go to login</a>
+    <a class="btn btn-primary" href="<?= htmlspecialchars($baseUrl) ?>login">Go to login</a>
   <?php else: ?>
     <?php if ($errors): foreach ($errors as $e): ?>
       <div class="alert alert-danger"><?=htmlspecialchars($e, ENT_QUOTES)?></div>
     <?php endforeach; endif; ?>
-    <form method="post" action="/onvif-ui/setup">
+    <form method="post" action="<?= htmlspecialchars($baseUrl) ?>setup">
       <div class="mb-2">
         <label class="form-label">Administrator username</label>
         <input name="admin_user" class="form-control" required>

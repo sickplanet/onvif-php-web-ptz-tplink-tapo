@@ -1,6 +1,8 @@
 <?php
 // Updated page_main.php with proper scan modal (no alert fallback), loader, header/footer, and dark/light mode
+// Uses BASE_URL constant (defined in index.php)
 $devices = load_json_cfg('cameras.json', ['cameras'=>[]])['cameras'] ?? [];
+$baseUrl = defined('BASE_URL') ? BASE_URL : '/';
 require_once __DIR__ . '/header.php';
 ?>
 <div class="row">
@@ -86,4 +88,8 @@ require_once __DIR__ . '/header.php';
 
 <?php require_once __DIR__ . '/footer.php'; ?>
 
-<script src="view/js/page_main.js"></script>
+<!-- Define BASE_URL for JavaScript -->
+<script>
+const BASE_URL = <?= json_encode($baseUrl) ?>;
+</script>
+<script src="<?= htmlspecialchars($baseUrl) ?>view/js/page_main.js"></script>
