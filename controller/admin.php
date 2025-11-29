@@ -38,10 +38,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'delete_user':
                 deleteUser();
                 break;
+            case 'save_settings':
+                saveSettings();
+                break;
             default:
                 ErrorHandler::handleError('Unknown action: ' . $action, 400);
         }
     }, $baseUrl . 'admin');
+}
+
+// === Settings Functions ===
+
+function saveSettings(): void {
+    $isPublic = !empty($_POST['isPublic']);
+    $scanCidrs = trim($_POST['scan_cidrs'] ?? '');
+    $allowedCidrs = trim($_POST['allowed_cidrs'] ?? '');
+    
+    // Parse CIDRs (one per line or comma-separated)
+    $scanCidrsArray = array_filter(array_map('trim', preg_split('/[\n,]+/', $scanCidrs)));
+    $allowedCidrsArray = array_filter(array_map('trim', preg_split('/[\n,]+/', $allowedCidrs)));
+    
+    // Validate CIDR format (basic check)
+    foreach ($scanCidrsArray as $cidr) {
+        if (!preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$/', $cidr) && 
+            !preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $cidr)) {
+            ErrorHandler::handleError('Invalid scan CIDR format: ' . $cidr, 400);
+        }
+    }
+    
+    foreach ($allowedCidrsArray as $cidr) {
+        if (!preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$/', $cidr) && 
+            !preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $cidr)) {
+            ErrorHandler::handleError('Invalid allowed CIDR format: ' . $cidr, 400);
+        }
+    }
+    
+    $config = load_json_cfg('config.json', []);
+    $config['isPublic'] = $isPublic;
+    $config['camera_discovery_cidrs'] = $scanCidrsArray;
+    $config['allowed_cidrs'] = $allowedCidrsArray;
+    
+    save_json_cfg('config.json', $config);
+    
+    ErrorHandler::handleSuccess([], null, 'Settings saved successfully');
 }
 
 // === Camera Functions ===

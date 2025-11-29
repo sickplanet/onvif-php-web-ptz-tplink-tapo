@@ -6,6 +6,7 @@
 $baseUrl = defined('BASE_URL') ? BASE_URL : '/';
 $cameras = load_json_cfg('cameras.json', ['cameras' => []])['cameras'] ?? [];
 $users = load_json_cfg('users.json', ['users' => []])['users'] ?? [];
+$config = load_json_cfg('config.json', []);
 $flash = ErrorHandler::getFlashMessages();
 
 require_once __DIR__ . '/header.php';
@@ -111,6 +112,65 @@ require_once __DIR__ . '/header.php';
             <?php endif; ?>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Section -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Application Settings</h5>
+      </div>
+      <div class="card-body">
+        <form method="post" action="<?= htmlspecialchars($baseUrl) ?>admin">
+          <input type="hidden" name="action" value="save_settings">
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="isPublicSwitch" name="isPublic" <?= !empty($config['isPublic']) ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="isPublicSwitch">
+                    <strong>Public Access Mode</strong>
+                  </label>
+                </div>
+                <small class="text-muted d-block mt-1">
+                  When enabled, the application is accessible from any IP address.<br>
+                  When disabled, only connections from allowed IP ranges are permitted (except public camera pages).
+                </small>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label"><strong>Camera Discovery IP Ranges (CIDRs)</strong></label>
+                <textarea name="scan_cidrs" class="form-control bg-dark text-light" rows="3" 
+                          placeholder="192.168.1.0/24&#10;10.0.0.0/8"><?= htmlspecialchars(implode("\n", $config['camera_discovery_cidrs'] ?? [])) ?></textarea>
+                <small class="text-muted">Enter one CIDR per line. Used for scanning/discovering cameras on your network.</small>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label"><strong>Allowed Client IP Ranges (CIDRs)</strong></label>
+                <textarea name="allowed_cidrs" class="form-control bg-dark text-light" rows="3" 
+                          placeholder="192.168.1.0/24&#10;10.0.0.0/8"><?= htmlspecialchars(implode("\n", $config['allowed_cidrs'] ?? [])) ?></textarea>
+                <small class="text-muted">
+                  When Public Access is OFF, only clients from these IP ranges can access the admin interface.<br>
+                  Public camera pages (share links) are always accessible.
+                </small>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label text-muted"><strong>Current Client IP:</strong></label>
+                <code class="ms-2"><?= htmlspecialchars($_SERVER['REMOTE_ADDR'] ?? 'unknown') ?></code>
+              </div>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary">Save Settings</button>
+        </form>
       </div>
     </div>
   </div>
