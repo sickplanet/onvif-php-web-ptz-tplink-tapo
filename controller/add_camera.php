@@ -74,13 +74,19 @@ if (isset($_GET['test']) && $_GET['test'] === 'ptz') {
         $onvif = onvif_client($ip, $username, $password, $device_service_url);
         
         // Get the first available profile token
+        // ponvif's getSources() returns: 
+        // [ sourceIndex => [ 'sourcetoken' => '...', 0 => ['profilename'=>..., 'profiletoken'=>...], 1 => [...], ... ] ]
         $sources = $onvif->getSources();
         $profileToken = null;
         
         if (is_array($sources)) {
             foreach ($sources as $source) {
                 if (is_array($source)) {
-                    foreach ($source as $profile) {
+                    foreach ($source as $profileKey => $profile) {
+                        // Skip 'sourcetoken' key, only process profile data
+                        if ($profileKey === 'sourcetoken') {
+                            continue;
+                        }
                         if (is_array($profile) && isset($profile['profiletoken'])) {
                             $profileToken = $profile['profiletoken'];
                             break 2;
