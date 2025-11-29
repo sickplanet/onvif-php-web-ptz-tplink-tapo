@@ -1,5 +1,7 @@
 <?php
 // footer.php - modular footer
+// Uses BASE_URL constant (defined in index.php)
+$baseUrl = defined('BASE_URL') ? BASE_URL : '/';
 ?>
 </main>
 <footer class="container-fluid py-3">
@@ -7,7 +9,7 @@
     Tp-Link (Tapo) PHP Live Web UI with PTZ — experimental. Keep cameras behind VPN or local network.
   </div>
 </footer>
-<!-- Bootstrap JS bundle -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap JS bundle (local) -->
+<script src="<?= htmlspecialchars($baseUrl) ?>view/external/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

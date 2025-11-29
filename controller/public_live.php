@@ -1,19 +1,25 @@
 <?php
-// Public live view endpoint (no auth). Supports URL forms:
-//  - /onvif-ui/public/live/{hash}
-// Also supports query ?hash=...
-// Uses cfg/public-cameras/{hash}.json
-//
-// The public JSON file must not contain credentials. It should contain:
-// {
-//   "id":"<hash>",
-//   "title":"Public Camera",
-//   "streams":[{"name":"high","url":"rtsp://.../stream1"}],
-//   "allowptz": false,
-//   "allow_audio": false,
-//   "expires": 0 // optional unix timestamp
-// }
-//
+/**
+ * Public live view endpoint (no auth). Supports URL forms:
+ *  - /public/live/{hash} (dynamic path)
+ * Also supports query ?hash=...
+ * Uses cfg/public-cameras/{hash}.json
+ *
+ * The public JSON file must not contain credentials. It should contain:
+ * {
+ *   "id":"<hash>",
+ *   "title":"Public Camera",
+ *   "streams":[{"name":"high","url":"rtsp://.../stream1"}],
+ *   "allowptz": false,
+ *   "allow_audio": false,
+ *   "expires": 0 // optional unix timestamp
+ * }
+ */
+require_once __DIR__ . '/ErrorHandler.php';
+
+// Get BASE_URL from index.php (should be defined)
+$baseUrl = defined('BASE_URL') ? BASE_URL : '/';
+
 $hash = null;
 
 // try query param first
@@ -28,30 +34,22 @@ if (!$hash) {
 }
 
 if (!$hash) {
-    http_response_code(404);
-    echo "Public camera not found.";
-    exit;
+    ErrorHandler::handleError('Public camera not found.', 404, $baseUrl);
 }
 
-$cfgFile = __DIR__ . '/../../cfg/public-cameras/' . $hash . '.json';
+$cfgFile = __DIR__ . '/../cfg/public-cameras/' . $hash . '.json';
 if (!file_exists($cfgFile)) {
-    http_response_code(404);
-    echo "Public camera not found.";
-    exit;
+    ErrorHandler::handleError('Public camera not found.', 404, $baseUrl);
 }
 
 $public = json_decode(file_get_contents($cfgFile), true);
 if (!$public) {
-    http_response_code(500);
-    echo "Invalid public camera configuration.";
-    exit;
+    ErrorHandler::handleError('Invalid public camera configuration.', 500, $baseUrl);
 }
 
 // check expiry if present
 if (!empty($public['expires']) && time() > intval($public['expires'])) {
-    http_response_code(410);
-    echo "This public camera link has expired.";
-    exit;
+    ErrorHandler::handleError('This public camera link has expired.', 410, $baseUrl);
 }
 
 // pick first stream url
@@ -64,21 +62,21 @@ $title = $public['title'] ?? 'Public Camera';
 $allowPtz = !empty($public['allowptz']);
 $allowAudio = !empty($public['allow_audio']);
 
-// check if html5_rtsp_player assets exist in model folder
+// check if html5_rtsp_player assets exist in model folder (use dynamic paths)
 $playerJs = null;
 $playerCss = null;
 $playerInitHint = null;
-$playerAssetPath = '/onvif-ui/model/html5_rtsp_player/dist';
-if (file_exists(__DIR__ . '/../../model/html5_rtsp_player/dist/player.js')) {
+$playerAssetPath = $baseUrl . 'model/html5_rtsp_player/dist';
+if (file_exists(__DIR__ . '/../model/html5_rtsp_player/dist/player.js')) {
     $playerJs = $playerAssetPath . '/player.js';
     // some builds include css
-    if (file_exists(__DIR__ . '/../../model/html5_rtsp_player/dist/player.css')) {
+    if (file_exists(__DIR__ . '/../model/html5_rtsp_player/dist/player.css')) {
         $playerCss = $playerAssetPath . '/player.css';
     }
     $playerInitHint = true;
-} elseif (file_exists(__DIR__ . '/../../model/html5_rtsp_player/public/player.js')) {
-    $playerJs = '/onvif-ui/model/html5_rtsp_player/public/player.js';
-    $playerCss = file_exists(__DIR__ . '/../../model/html5_rtsp_player/public/player.css') ? '/onvif-ui/model/html5_rtsp_player/public/player.css' : null;
+} elseif (file_exists(__DIR__ . '/../model/html5_rtsp_player/public/player.js')) {
+    $playerJs = $baseUrl . 'model/html5_rtsp_player/public/player.js';
+    $playerCss = file_exists(__DIR__ . '/../model/html5_rtsp_player/public/player.css') ? $baseUrl . 'model/html5_rtsp_player/public/player.css' : null;
     $playerInitHint = true;
 }
 
@@ -88,7 +86,7 @@ if (file_exists(__DIR__ . '/../../model/html5_rtsp_player/dist/player.js')) {
   <meta charset="utf-8">
   <title><?=htmlspecialchars($title)?></title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="<?= htmlspecialchars($baseUrl) ?>view/external/css/bootstrap.min.css" rel="stylesheet">
   <?php if ($playerCss): ?><link href="<?=htmlspecialchars($playerCss)?>" rel="stylesheet"><?php endif; ?>
   <style>body{background:#000;color:#ddd} .player-wrapper{display:flex;align-items:center;justify-content:center;height:80vh}</style>
 </head>
@@ -165,10 +163,12 @@ if (file_exists(__DIR__ . '/../../model/html5_rtsp_player/dist/player.js')) {
 <?php endif; ?>
 
 <script>
+const BASE_URL = <?= json_encode($baseUrl) ?>;
+
 async function ptz(action) {
   // Public PTZ: we DO NOT include credentials in public file.
   // If PTZ is allowed, the public configuration must have a server-side token mapping to a camera.
-  // We'll POST to /onvif-ui/public/ptz-proxy and pass the public hash and action.
+  // We'll POST to the public PTZ proxy and pass the public hash and action.
   const matches = location.pathname.match(/\/public\/live\/([a-f0-9]{32})/i);
   if (!matches) { alert('Invalid public token'); return; }
   const hash = matches[1];
@@ -177,7 +177,7 @@ async function ptz(action) {
   form.set('hash', hash);
   form.set('action', action);
 
-  const resp = await fetch('/onvif-ui/controller/public_ptz.php', {
+  const resp = await fetch(BASE_URL + 'controller/public_ptz.php', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: form.toString()

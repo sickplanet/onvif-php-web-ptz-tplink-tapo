@@ -1,6 +1,7 @@
 // --- State ---
 let currentDeviceId = null;
 let currentProfileToken = null;
+// BASE_URL is defined in page_main.php before this script loads
 const scanModal = new bootstrap.Modal(document.getElementById('scanModal'), {});
 
 // --- Helpers ---
@@ -15,7 +16,7 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
   document.getElementById('scanLoader').style.display = 'inline-block';
 
   try {
-    const res = await fetch('/onvif-ui/cameras/scan', { method: 'GET', credentials: 'same-origin' });
+    const res = await fetch(BASE_URL + 'cameras/scan', { method: 'GET', credentials: 'same-origin' });
     document.getElementById('scanLoader').style.display = 'none';
     if (!res.ok) {
       const text = await res.text();
@@ -106,7 +107,7 @@ async function addDiscovered(ip, manufacturer, model, xaddrs) {
   body.set('password', '');
 
   try {
-    const res = await fetch('/onvif-ui/controller/add_camera.php', {
+    const res = await fetch(BASE_URL + 'controller/add_camera.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: body.toString()
@@ -126,14 +127,14 @@ document.getElementById('deviceSelect').addEventListener('change', async functio
   const id = this.value;
   if (!id) return;
   currentDeviceId = id;
-  const r = await fetch('/onvif-ui/onvif/profiles?deviceId=' + encodeURIComponent(id));
+  const r = await fetch(BASE_URL + 'onvif/profiles?deviceId=' + encodeURIComponent(id));
   const j = await r.json();
   document.getElementById('debugArea').textContent = JSON.stringify(j, null, 2);
   if (!j.ok) { alert(j.error || 'Error'); return; }
   const sources = j.sources || [];
   if (sources.length && sources[0][1] && sources[0][1].profiletoken) {
     currentProfileToken = sources[0][1].profiletoken;
-    const s = await fetch('/onvif-ui/onvif/stream?deviceId=' + encodeURIComponent(id) + '&profileToken=' + encodeURIComponent(currentProfileToken));
+    const s = await fetch(BASE_URL + 'onvif/stream?deviceId=' + encodeURIComponent(id) + '&profileToken=' + encodeURIComponent(currentProfileToken));
     const sj = await s.json();
     document.getElementById('debugArea').textContent = JSON.stringify(sj, null, 2);
     document.getElementById('streamUri').textContent = sj.streamUri || '-';
@@ -160,10 +161,10 @@ async function ptz(action) {
   body.set('profileToken', currentProfileToken);
   body.set('action', action);
   body.set('continuous', continuous);
-  const r = await fetch('/onvif-ui/onvif/ptz', { method:'POST', body });
+  const r = await fetch(BASE_URL + 'onvif/ptz', { method:'POST', body });
   const j = await r.json();
   if (!j.ok) alert(j.error || 'PTZ error');
   if (continuous !== '1' && action !== 'stop' && j.ok) {
-    setTimeout(()=>{ fetch('/onvif-ui/onvif/ptz', { method:'POST', body: new URLSearchParams({deviceId:currentDeviceId, profileToken:currentProfileToken, action:'stop'}) }); }, 350);
+    setTimeout(()=>{ fetch(BASE_URL + 'onvif/ptz', { method:'POST', body: new URLSearchParams({deviceId:currentDeviceId, profileToken:currentProfileToken, action:'stop'}) }); }, 350);
   }
 }

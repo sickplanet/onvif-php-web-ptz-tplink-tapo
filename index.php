@@ -116,6 +116,12 @@ switch ($first) {
         include __DIR__ . '/controller/public_live.php';
         break;
 
+    case 'admin':
+        // Admin panel for managing cameras and users
+        require_login();
+        include __DIR__ . '/controller/admin.php';
+        break;
+
     default:
         if (is_logged_in()) {
             include __DIR__ . '/view/page_main.php';
