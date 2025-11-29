@@ -1,5 +1,6 @@
 <?php
 // controller/add_camera.php - updated: when adding try to fetch device info and save manufacturer/model
+// Also supports test mode (?test=1) for testing connection before adding
 header('Content-Type: application/json');
 require_once __DIR__ . '/../onvif_client.php';
 session_start();
@@ -12,6 +13,47 @@ $password = trim($_POST['password'] ?? '');
 $device_service_url = trim($_POST['device_service_url'] ?? '');
 $manufacturer = trim($_POST['manufacturer'] ?? '');
 $model = trim($_POST['model'] ?? '');
+
+// Test mode: just try to connect and return device info
+if (isset($_GET['test']) && $_GET['test'] === '1') {
+    if ($ip === '') { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'ip required']); exit; }
+    if ($device_service_url === '') $device_service_url = "http://{$ip}:2020/onvif/device_service";
+    
+    $infoFromDevice = null;
+    
+    // If user provided credentials, try authenticated onvif_client
+    if ($username !== '' && $password !== '' && class_exists('Ponvif')) {
+        try {
+            $onvif = onvif_client($ip, $username, $password, $device_service_url);
+            $info = $onvif->core_GetDeviceInformation();
+            if ($info && is_array($info)) {
+                $infoFromDevice = $info;
+            }
+        } catch (Exception $e) {
+            // If auth fails with credentials, report the error
+            echo json_encode(['ok'=>false,'error'=>'Authentication failed: '.$e->getMessage()]);
+            exit;
+        }
+    }
+    
+    // If not obtained via auth, try unauthenticated public info fetch
+    if (!$infoFromDevice) {
+        $pi = get_device_public_info($device_service_url);
+        if ($pi['ok']) {
+            $infoFromDevice = $pi['info'];
+        } else {
+            echo json_encode(['ok'=>false,'error'=>'Could not get device info: '.($pi['error'] ?? 'Unknown error')]);
+            exit;
+        }
+    }
+    
+    echo json_encode([
+        'ok'=>true,
+        'manufacturer'=>$infoFromDevice['Manufacturer'] ?? '',
+        'model'=>$infoFromDevice['Model'] ?? ''
+    ]);
+    exit;
+}
 
 if ($ip === '' || $name === '') { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'ip and name required']); exit; }
 

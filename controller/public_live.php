@@ -85,49 +85,157 @@ if (file_exists(__DIR__ . '/../model/html5_rtsp_player/dist/player.js')) {
 <head>
   <meta charset="utf-8">
   <title><?=htmlspecialchars($title)?></title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <link href="<?= htmlspecialchars($baseUrl) ?>view/external/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
   <?php if ($playerCss): ?><link href="<?=htmlspecialchars($playerCss)?>" rel="stylesheet"><?php endif; ?>
-  <style>body{background:#000;color:#ddd} .player-wrapper{display:flex;align-items:center;justify-content:center;height:80vh}</style>
+  <style>
+    :root {
+      --bg: #0b0b0b;
+      --card: #111;
+      --text: #eee;
+      --muted: #9aa0a6;
+      --accent: #0d6efd;
+    }
+    body { 
+      background: var(--bg); 
+      color: var(--text);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .public-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    .public-header {
+      text-align: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid #222;
+      margin-bottom: 1rem;
+    }
+    .public-header h1 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    .player-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      aspect-ratio: 16/9;
+      max-height: 70vh;
+      background: #000;
+      border: 1px solid #222;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .player-wrapper #player,
+    .player-wrapper #playerContainer {
+      width: 100%;
+      height: 100%;
+    }
+    .ptz-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem 0;
+    }
+    .ptz-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(3, 40px);
+      gap: 4px;
+    }
+    .ptz-grid .btn {
+      padding: 0.25rem;
+    }
+    .zoom-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-left: 1rem;
+    }
+    .public-footer {
+      text-align: center;
+      padding: 1rem;
+      color: var(--muted);
+      font-size: 0.875rem;
+      border-top: 1px solid #222;
+      margin-top: 1rem;
+    }
+    .stream-info {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    .stream-info code {
+      word-break: break-all;
+    }
+    @media (max-width: 576px) {
+      .public-header h1 { font-size: 1.25rem; }
+      .ptz-grid { grid-template-columns: repeat(3, 45px); grid-template-rows: repeat(3, 36px); }
+      .zoom-controls { margin-left: 0.5rem; }
+      .zoom-controls .btn { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-  <div class="py-3 text-center text-light">
-    <h3><?=htmlspecialchars($title)?></h3>
-    <?php if ($allowPtz): ?><div class="text-success small">PTZ enabled</div><?php endif; ?>
-  </div>
+<div class="public-container">
+  <header class="public-header">
+    <h1><?=htmlspecialchars($title)?></h1>
+    <?php if ($allowPtz): ?>
+      <span class="badge bg-success">PTZ Enabled</span>
+    <?php endif; ?>
+    <?php if ($allowAudio): ?>
+      <span class="badge bg-info">Audio Enabled</span>
+    <?php endif; ?>
+  </header>
 
   <div class="player-wrapper">
-    <div id="playerContainer" style="width:100%;max-width:1024px;height:576px;background:#000;border:1px solid #222;display:flex;align-items:center;justify-content:center;">
-      <?php if ($playerJs && $streamUrl): ?>
-        <div id="player" style="width:100%;height:100%"></div>
-      <?php else: ?>
-        <div class="text-light text-center">
-          <p>No in-browser player available.</p>
-          <?php if ($streamUrl): ?>
-            <p>Open this URL in VLC or your NVR: <br><code><?=htmlspecialchars($streamUrl)?></code></p>
-          <?php endif; ?>
-        </div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="py-3 text-center">
-    <?php if ($allowPtz): ?>
-      <div id="ptzControls" class="btn-group" role="group">
-        <button class="btn btn-light btn-sm" onclick="ptz('left')">◀</button>
-        <button class="btn btn-danger btn-sm" onclick="ptz('stop')">■</button>
-        <button class="btn btn-light btn-sm" onclick="ptz('right')">▶</button>
-        <button class="btn btn-light btn-sm" onclick="ptz('up')">▲</button>
-        <button class="btn btn-light btn-sm" onclick="ptz('down')">▼</button>
-        <button class="btn btn-light btn-sm" onclick="ptz('zoom_in')">Zoom +</button>
-        <button class="btn btn-light btn-sm" onclick="ptz('zoom_out')">Zoom −</button>
+    <?php if ($playerJs && $streamUrl): ?>
+      <div id="player"></div>
+    <?php else: ?>
+      <div class="text-light text-center p-3">
+        <p class="mb-2"><i class="text-muted">No in-browser player available</i></p>
+        <?php if ($streamUrl): ?>
+          <div class="stream-info">
+            <p class="mb-1">Open this URL in VLC or your NVR:</p>
+            <code><?=htmlspecialchars($streamUrl)?></code>
+          </div>
+        <?php endif; ?>
       </div>
     <?php endif; ?>
   </div>
 
-  <div class="text-center text-muted small mb-4">This is a public view. No login required.</div>
+  <?php if ($allowPtz): ?>
+  <div class="ptz-controls">
+    <div class="ptz-grid">
+      <div></div>
+      <button class="btn btn-secondary btn-sm" onclick="ptz('up')">▲</button>
+      <div></div>
+      <button class="btn btn-secondary btn-sm" onclick="ptz('left')">◀</button>
+      <button class="btn btn-danger btn-sm" onclick="ptz('stop')">■</button>
+      <button class="btn btn-secondary btn-sm" onclick="ptz('right')">▶</button>
+      <div></div>
+      <button class="btn btn-secondary btn-sm" onclick="ptz('down')">▼</button>
+      <div></div>
+    </div>
+    <div class="zoom-controls">
+      <button class="btn btn-secondary btn-sm" onclick="ptz('zoom_in')">Zoom +</button>
+      <button class="btn btn-secondary btn-sm" onclick="ptz('zoom_out')">Zoom −</button>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <footer class="public-footer">
+    Public view • No login required
+  </footer>
 </div>
+
+<script src="<?= htmlspecialchars($baseUrl) ?>view/external/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
 <?php if ($playerJs && $streamUrl): ?>
 <script src="<?=htmlspecialchars($playerJs)?>"></script>

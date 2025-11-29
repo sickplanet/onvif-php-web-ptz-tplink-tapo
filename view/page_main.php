@@ -86,6 +86,53 @@ require_once __DIR__ . '/header.php';
   </div>
 </div>
 
+<!-- Add Camera Modal (used when adding discovered camera) -->
+<div class="modal fade" id="addCameraModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Camera</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="addCamIp">
+        <input type="hidden" id="addCamManufacturer">
+        <input type="hidden" id="addCamModel">
+        <input type="hidden" id="addCamXaddrs">
+        
+        <div class="mb-2">
+          <label class="form-label">IP Address</label>
+          <input type="text" id="addCamIpDisplay" class="form-control" readonly>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Camera Name *</label>
+          <input type="text" id="addCamName" class="form-control" required placeholder="e.g. Front Door Camera">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Username</label>
+          <input type="text" id="addCamUsername" class="form-control" placeholder="Camera ONVIF username">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Password</label>
+          <input type="password" id="addCamPassword" class="form-control" placeholder="Camera ONVIF password">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Device Service URL</label>
+          <input type="text" id="addCamDeviceUrl" class="form-control" placeholder="Auto-detected">
+          <small class="text-muted">Leave blank to use default</small>
+        </div>
+        
+        <div id="addCamTestResult" class="mt-2" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="testConnectionBtn" class="btn btn-outline-info">Test Connection</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="confirmAddCameraBtn" class="btn btn-primary">Add Camera</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php require_once __DIR__ . '/footer.php'; ?>
 
 <!-- Define BASE_URL for JavaScript -->
