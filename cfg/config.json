@@ -1,9 +1,0 @@
-{
-    "base_url": "https:\/\/sickplanet.go.ro\/onvif-ui\/",
-    "lan_cidr": "192.168.2.0\/24",
-    "isPublic": true,
-    "camera_discovery_cidrs": [
-        "192.168.2.0\/24"
-    ],
-    "cache_ttl_seconds": 86400
-}
