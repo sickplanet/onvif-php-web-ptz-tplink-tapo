@@ -28,9 +28,11 @@ RewriteRule ^(cfg|ponvif|vendor|model/ponvif)/ - [F,L]
 RewriteRule ^ index.php [QSA,L]
 </IfModule>
 
-# Custom error handling - route errors to index.php
-ErrorDocument 400 /index.php
-ErrorDocument 401 /index.php
-ErrorDocument 403 /index.php
-ErrorDocument 404 /index.php
-ErrorDocument 500 /index.php
+# Custom error handling - route errors to index.php (relative path works in subdirectory)
+# Note: These ErrorDocument directives use relative paths so they work regardless of install location.
+# The RewriteRules above should handle most routing, but these are fallbacks for direct Apache errors.
+ErrorDocument 400 index.php
+ErrorDocument 401 index.php
+ErrorDocument 403 index.php
+ErrorDocument 404 index.php
+ErrorDocument 500 index.php

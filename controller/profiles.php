@@ -9,7 +9,7 @@ require_once __DIR__ . '/ErrorHandler.php';
 // Always set JSON content type first
 header('Content-Type: application/json');
 
-ErrorHandler::wrap(function() {
+try {
     $deviceId = $_GET['deviceId'] ?? null;
 
     if (!$deviceId) {
@@ -34,26 +34,25 @@ ErrorHandler::wrap(function() {
     $pass = $device['password'] ?? '';
     $deviceServiceUrl = $device['device_service_url'] ?? "http://{$ip}:2020/onvif/device_service";
 
-    try {
-        $onvif = onvif_client($ip, $user, $pass, $deviceServiceUrl);
-        
-        // Get media profiles - returns array of profile sources
-        $sources = $onvif->getSources();
-        
-        // Format sources for the frontend
-        $formattedSources = [];
-        if (is_array($sources)) {
-            foreach ($sources as $key => $source) {
-                $formattedSources[] = [$key, $source];
-            }
+    $onvif = onvif_client($ip, $user, $pass, $deviceServiceUrl);
+    
+    // Get media profiles - returns array of profile sources
+    $sources = $onvif->getSources();
+    
+    // Format sources for the frontend
+    $formattedSources = [];
+    if (is_array($sources)) {
+        foreach ($sources as $key => $source) {
+            $formattedSources[] = [$key, $source];
         }
-
-        ErrorHandler::json([
-            'ok' => true,
-            'deviceId' => $deviceId,
-            'sources' => $formattedSources
-        ]);
-    } catch (Exception $e) {
-        ErrorHandler::json(['ok' => false, 'error' => $e->getMessage()], 500);
     }
-});
+
+    ErrorHandler::json([
+        'ok' => true,
+        'deviceId' => $deviceId,
+        'sources' => $formattedSources
+    ]);
+} catch (Throwable $e) {
+    error_log("profiles.php error: " . $e->getMessage());
+    ErrorHandler::json(['ok' => false, 'error' => $e->getMessage()], 500);
+}
