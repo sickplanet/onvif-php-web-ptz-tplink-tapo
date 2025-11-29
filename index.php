@@ -13,6 +13,9 @@ if (!defined('BASE_URL')) {
     define('BASE_URL', $scheme . '://' . $host . $uri . '/');
 }
 
+// Load ErrorHandler early for error handling
+require_once __DIR__ . '/controller/ErrorHandler.php';
+
 // Remove unconditional includes of controller/message.php — include when routing to it only
 require_once __DIR__ . '/onvif_client.php';
 
@@ -27,9 +30,49 @@ function require_login() {
     }
 }
 
+/**
+ * Handle HTTP error codes (400, 401, 403, 404, 500) from ErrorDocument directives
+ * Returns true if an error was handled, false otherwise
+ */
+function handleHttpError(): bool {
+    $errorCode = isset($_GET['error']) ? intval($_GET['error']) : 0;
+    if ($errorCode < 400 || $errorCode > 599) {
+        return false;
+    }
+    
+    $errorMessages = [
+        400 => 'Bad Request',
+        401 => 'Unauthorized',
+        403 => 'Forbidden - Access Denied',
+        404 => 'Page Not Found',
+        500 => 'Internal Server Error',
+    ];
+    
+    $message = $errorMessages[$errorCode] ?? 'An error occurred';
+    
+    // Set proper HTTP status code
+    http_response_code($errorCode);
+    
+    // For AJAX requests, return JSON
+    if (ErrorHandler::isAjaxRequest()) {
+        ErrorHandler::json(['ok' => false, 'error' => $message, 'code' => $errorCode], $errorCode);
+        return true;
+    }
+    
+    // For normal requests, show error page via message controller
+    $_GET['m'] = "Error {$errorCode}: {$message}";
+    include __DIR__ . '/controller/message.php';
+    return true;
+}
+
 // Configured flag path
 $cfg_dir = __DIR__ . '/cfg';
 $configured_flag = $cfg_dir . '/configured';
+
+// Handle HTTP error codes from ErrorDocument directives first
+if (handleHttpError()) {
+    exit;
+}
 
 // Determine request path relative to script base
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
