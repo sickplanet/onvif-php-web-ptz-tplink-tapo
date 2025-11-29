@@ -1,3 +1,6 @@
 [submodule "model/ponvif"]
 	path = model/ponvif
 	url = https://github.com/KuroNeko-san/ponvif
+[submodule "view/external/bootstrap"]
+	path = view/external/bootstrap
+	url = https://github.com/twbs/bootstrap

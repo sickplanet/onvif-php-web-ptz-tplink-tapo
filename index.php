@@ -1,6 +1,18 @@
 <?php
 session_start();
 
+// Define BASE_URL automatically – works in root OR subfolder
+if (!defined('BASE_URL')) {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'];                   // example.com
+    $uri    = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\'); // /onvif-ui  or /
+    
+    // If script is in root → $uri becomes ".", we fix it to ""
+    if ($uri === '.' || $uri === '\\') $uri = '';
+    
+    define('BASE_URL', $scheme . '://' . $host . $uri . '/');
+}
+
 // Remove unconditional includes of controller/message.php — include when routing to it only
 require_once __DIR__ . '/onvif_client.php';
 
@@ -10,7 +22,7 @@ function is_logged_in(): bool {
 }
 function require_login() {
     if (!is_logged_in()) {
-        header('Location: /onvif-ui/login');
+        header('Location: ' . BASE_URL . 'login');
         exit;
     }
 }

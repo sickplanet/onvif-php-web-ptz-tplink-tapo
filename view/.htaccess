@@ -1,0 +1,13 @@
+# Block all .php files
+<Files *.php>
+    Require all denied
+</Files>
+
+# Explicitly allow static assets (optional but safe)
+<FilesMatch "\.(css|js|jpe?g|png|gif|webp|svg|woff2?|ttf|eot|ico|txt|json|pdf)$">
+    Require all granted
+    Header set Cache-Control "public, max-age=31536000"
+</FilesMatch>
+
+# Block hidden/config files
+RedirectMatch 410 ^/(.*/)?\.(git|htaccess|env|bak|swp|ini|log|sh|inc|conf)$
