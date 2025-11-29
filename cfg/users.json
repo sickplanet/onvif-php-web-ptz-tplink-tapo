@@ -1,10 +1,1 @@
-{
-    "users": [
-        {
-            "username": "lucian",
-            "password_hash": "$2y$10$Y6P7dX0rbn1WglcUPFQNOuuo7t8iBkjFCziWzw.zc8jEoTxeUOG82",
-            "isadmin": true,
-            "cameras": []
-        }
-    ]
-}
+{"users":[{"username":"admin","password_hash":"$2y$10$wcdSGpqW86lmFd.OtF9Y0uiFtG1LAMU8WL\/bANcuFtQT0eSsfUxi2","isadmin":true}]}
