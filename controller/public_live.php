@@ -86,7 +86,7 @@ if (file_exists(__DIR__ . '/../model/html5_rtsp_player/dist/player.js')) {
   <meta charset="utf-8">
   <title><?=htmlspecialchars($title)?></title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link href="<?= htmlspecialchars($baseUrl) ?>view/external/css/bootstrap.min.css" rel="stylesheet">
+  <link href="<?= htmlspecialchars($baseUrl) ?>view/external/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
   <?php if ($playerCss): ?><link href="<?=htmlspecialchars($playerCss)?>" rel="stylesheet"><?php endif; ?>
   <style>body{background:#000;color:#ddd} .player-wrapper{display:flex;align-items:center;justify-content:center;height:80vh}</style>
 </head>

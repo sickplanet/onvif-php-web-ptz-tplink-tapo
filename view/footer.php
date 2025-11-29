@@ -9,7 +9,7 @@ $baseUrl = defined('BASE_URL') ? BASE_URL : '/';
     Tp-Link (Tapo) PHP Live Web UI with PTZ — experimental. Keep cameras behind VPN or local network.
   </div>
 </footer>
-<!-- Bootstrap JS bundle (local) -->
-<script src="<?= htmlspecialchars($baseUrl) ?>view/external/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap JS bundle (local submodule) -->
+<script src="<?= htmlspecialchars($baseUrl) ?>view/external/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

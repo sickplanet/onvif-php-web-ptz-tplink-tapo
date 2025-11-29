@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="utf-8">
 <title>Login - ONVIF UI</title>
-<link href="<?= htmlspecialchars($baseUrl) ?>view/external/css/bootstrap.min.css" rel="stylesheet">
+<link href="<?= htmlspecialchars($baseUrl) ?>view/external/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-dark text-light">
 <div class="container py-5">

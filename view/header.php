@@ -9,8 +9,8 @@ $baseUrl = defined('BASE_URL') ? BASE_URL : '/';
   <meta charset="utf-8">
   <title>Tp-Link (Tapo) PHP Live Web UI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (local) -->
-  <link href="<?= htmlspecialchars($baseUrl) ?>view/external/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap CSS (local submodule) -->
+  <link href="<?= htmlspecialchars($baseUrl) ?>view/external/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="<?= htmlspecialchars($baseUrl) ?>view/css/loader.css" rel="stylesheet">
   <style>
     :root {
