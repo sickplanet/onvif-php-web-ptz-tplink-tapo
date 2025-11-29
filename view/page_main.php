@@ -39,25 +39,9 @@ require_once __DIR__ . '/header.php';
   <!-- Main content - responsive: col-12 on mobile, col-lg-9 on large screens -->
   <div class="col-12 col-lg-9">
     <div id="mainPanel" class="card p-3">
-      <div id="videoArea" class="video-wrapper position-relative">
+      <div id="videoArea" class="video-wrapper">
         <div id="videoPlaceholder">Select a camera</div>
         <img id="snapshotImg" class="img-fluid" style="display:none" alt="Camera snapshot" />
-        <!-- Live view controls -->
-        <div id="liveViewControls" class="position-absolute top-0 end-0 p-2" style="display:none;">
-          <div class="btn-group btn-group-sm">
-            <button id="playPauseBtn" class="btn btn-outline-light" onclick="toggleLiveView()" title="Play/Pause live view">
-              <span id="playIcon">▶</span>
-            </button>
-            <button class="btn btn-outline-light" onclick="refreshSnapshot()" title="Refresh snapshot">⟳</button>
-          </div>
-          <span id="liveIndicator" class="badge bg-danger ms-2" style="display:none;">● LIVE</span>
-        </div>
-        <!-- Loading spinner -->
-        <div id="videoLoader" class="position-absolute top-50 start-50 translate-middle" style="display:none;">
-          <div class="spinner-border text-light" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
       </div>
 
       <!-- Stream URIs - responsive text -->
@@ -68,26 +52,23 @@ require_once __DIR__ . '/header.php';
       </div>
 
       <!-- PTZ Controls - responsive layout -->
-      <div id="ptzControls" class="mt-3">
+      <div class="mt-3">
         <div class="d-flex flex-wrap align-items-start gap-3">
           <!-- D-pad -->
-          <div id="ptzDpad" class="d-inline-grid" style="grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,40px);gap:4px;">
-            <div></div><button id="ptzUp" class="btn btn-sm btn-secondary ptz-btn" data-action="up">▲</button><div></div>
-            <button id="ptzLeft" class="btn btn-sm btn-secondary ptz-btn" data-action="left">◀</button>
-            <button id="ptzStop" class="btn btn-sm btn-danger ptz-btn" data-action="stop">■</button>
-            <button id="ptzRight" class="btn btn-sm btn-secondary ptz-btn" data-action="right">▶</button>
-            <div></div><button id="ptzDown" class="btn btn-sm btn-secondary ptz-btn" data-action="down">▼</button><div></div>
+          <div class="d-inline-grid" style="grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,40px);gap:4px;">
+            <div></div><button class="btn btn-sm btn-secondary" onclick="ptz('up')">▲</button><div></div>
+            <button class="btn btn-sm btn-secondary" onclick="ptz('left')">◀</button>
+            <button class="btn btn-sm btn-danger" onclick="ptz('stop')">■</button>
+            <button class="btn btn-sm btn-secondary" onclick="ptz('right')">▶</button>
+            <div></div><button class="btn btn-sm btn-secondary" onclick="ptz('down')">▼</button><div></div>
           </div>
           <!-- Zoom buttons -->
-          <div id="ptzZoom" class="d-flex flex-column gap-2">
-            <button id="ptzZoomIn" class="btn btn-sm btn-secondary ptz-btn" data-action="zoom_in">Zoom +</button>
-            <button id="ptzZoomOut" class="btn btn-sm btn-secondary ptz-btn" data-action="zoom_out">Zoom −</button>
+          <div class="d-flex flex-column gap-2">
+            <button class="btn btn-sm btn-secondary" onclick="ptz('zoom_in')">Zoom +</button>
+            <button class="btn btn-sm btn-secondary" onclick="ptz('zoom_out')">Zoom −</button>
           </div>
         </div>
       </div>
-
-      <!-- Toast container for notifications -->
-      <div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;"></div>
 
       <!-- Debug area - scrollable -->
       <pre id="debugArea" class="mt-3 text-muted-custom small" style="max-height:200px;overflow:auto;word-break:break-all;white-space:pre-wrap;"></pre>
