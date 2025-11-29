@@ -215,18 +215,65 @@ document.getElementById('testConnectionBtn').addEventListener('click', async () 
     const j = await res.json();
     if (j.ok) {
       resultDiv.className = 'mt-2 alert alert-success';
-      let info = 'Connection successful!';
+      let info = '✓ Connection successful!';
       if (j.manufacturer || j.model) {
         info += '<br><small>Device: ' + escapeHtml(j.manufacturer || '') + ' ' + escapeHtml(j.model || '') + '</small>';
       }
       resultDiv.innerHTML = info;
     } else {
       resultDiv.className = 'mt-2 alert alert-danger';
-      resultDiv.innerHTML = 'Connection failed: ' + escapeHtml(j.error || 'Unknown error');
+      resultDiv.innerHTML = '✗ Connection failed: ' + escapeHtml(j.error || 'Unknown error');
     }
   } catch (err) {
     resultDiv.className = 'mt-2 alert alert-danger';
-    resultDiv.innerHTML = 'Test error: ' + escapeHtml(err.message);
+    resultDiv.innerHTML = '✗ Test error: ' + escapeHtml(err.message);
+  }
+});
+
+// --- Test PTZ button handler ---
+document.getElementById('testPtzBtn').addEventListener('click', async () => {
+  const ip = document.getElementById('addCamIp').value;
+  const username = document.getElementById('addCamUsername').value;
+  const password = document.getElementById('addCamPassword').value;
+  const deviceUrl = getDeviceUrl();
+  
+  if (!ip) {
+    showAddCamError('Please enter an IP address');
+    return;
+  }
+  
+  const resultDiv = document.getElementById('addCamTestResult');
+  resultDiv.style.display = 'block';
+  resultDiv.className = 'mt-2 alert alert-info';
+  resultDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Testing PTZ... (moving camera slightly)';
+  
+  try {
+    const body = new URLSearchParams();
+    body.set('ip', ip);
+    body.set('username', username);
+    body.set('password', password);
+    body.set('device_service_url', deviceUrl);
+    
+    const res = await fetch(BASE_URL + 'controller/add_camera.php?test=ptz', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body.toString()
+    });
+    const j = await res.json();
+    if (j.ok) {
+      resultDiv.className = 'mt-2 alert alert-success';
+      let info = '✓ PTZ test successful!';
+      if (j.message) {
+        info += '<br><small>' + escapeHtml(j.message) + '</small>';
+      }
+      resultDiv.innerHTML = info;
+    } else {
+      resultDiv.className = 'mt-2 alert alert-danger';
+      resultDiv.innerHTML = '✗ PTZ test failed: ' + escapeHtml(j.error || 'Unknown error');
+    }
+  } catch (err) {
+    resultDiv.className = 'mt-2 alert alert-danger';
+    resultDiv.innerHTML = '✗ PTZ test error: ' + escapeHtml(err.message);
   }
 });
 

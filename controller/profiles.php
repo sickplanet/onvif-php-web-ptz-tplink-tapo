@@ -89,17 +89,20 @@ try {
     $sources = $onvif->getSources();
     
     // Parse and flatten the nested structure into simplified profiles array
+    // ponvif's getSources() returns: 
+    // [ sourceIndex => [ 'sourcetoken' => '...', 0 => ['profilename'=>..., 'profiletoken'=>...], 1 => [...], ... ] ]
     $profiles = [];
     
     if (is_array($sources)) {
         foreach ($sources as $sourceKey => $source) {
-            // $source could be:
-            // - A nested array like [0 => ['profilename' => '...', 'profiletoken' => '...'], 1 => [...]]
-            // - Or a single profile object
-            
+            // Each source is an array with 'sourcetoken' and indexed profile data
             if (is_array($source)) {
-                // Check if this is a source with indexed profiles (e.g., ["0" => {...}, "1" => {...}])
                 foreach ($source as $profileKey => $profileData) {
+                    // Skip 'sourcetoken' key, only process numeric indices (0, 1, 2...)
+                    if ($profileKey === 'sourcetoken') {
+                        continue;
+                    }
+                    
                     if (is_array($profileData)) {
                         $extracted = extractProfileData($profileData, (string)$profileKey);
                         if ($extracted !== null) {
@@ -117,24 +120,9 @@ try {
         }
     }
     
-    // If no profiles found but we have sources, try alternative parsing
-    if (empty($profiles) && is_array($sources) && count($sources) > 0) {
-        // Try to handle the structure: [[0, {0: {profilename, profiletoken}, 1: {...}}]]
-        foreach ($sources as $sourceEntry) {
-            if (is_array($sourceEntry) && count($sourceEntry) >= 2) {
-                $profilesObj = $sourceEntry[1] ?? null;
-                if (is_array($profilesObj)) {
-                    foreach ($profilesObj as $key => $profile) {
-                        if (is_array($profile)) {
-                            $extracted = extractProfileData($profile, (string)$key);
-                            if ($extracted !== null) {
-                                $profiles[] = $extracted;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    // Log debug info if no profiles found
+    if (empty($profiles)) {
+        error_log("profiles.php: No profiles parsed from sources: " . json_encode($sources));
     }
 
     ErrorHandler::json([

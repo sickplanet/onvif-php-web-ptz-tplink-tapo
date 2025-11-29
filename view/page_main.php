@@ -137,6 +137,7 @@ require_once __DIR__ . '/header.php';
       </div>
       <div class="modal-footer flex-wrap gap-2">
         <button type="button" id="testConnectionBtn" class="btn btn-outline-info">Test Connection</button>
+        <button type="button" id="testPtzBtn" class="btn btn-outline-warning">Test PTZ</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" id="confirmAddCameraBtn" class="btn btn-primary">Add Camera</button>
       </div>
